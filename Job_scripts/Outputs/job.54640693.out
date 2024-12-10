@@ -1,0 +1,28 @@
+Base directory: /home/ap6603/Script_analysis
+Config file path: /home/ap6603/Script_analysis/Results/config_136/config_136.yaml
+Results directory: /home/ap6603/Script_analysis/Results/config_136
+Config number: 136
+Current directory: /home/ap6603/Script_analysis/Job_scripts/Outputs
+Config file: /home/ap6603/Script_analysis/Results/config_136/config_136.yaml
+Config number: 136
+Current working directory: /home/ap6603/Script_analysis
+Attempting to load config from: /home/ap6603/Script_analysis/Results/config_136/config_136.yaml
+Contrast:   0%|          | 0/6 [00:00<?, ?it/s]
+Gamma (c=0.032):   0%|          | 0/1 [00:00<?, ?it/s][A
+                                                      [AContrast:   0%|          | 0/6 [00:08<?, ?it/s]
+Traceback (most recent call last):
+  File "/home/ap6603/Script_analysis/Power_spectra.py", line 120, in <module>
+    main(config_file)  # Pass the config_file to main
+    ^^^^^^^^^^^^^^^^^
+  File "/home/ap6603/Script_analysis/Power_spectra.py", line 49, in main
+    Power_data = Calculate_power_spectra(
+                 ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ap6603/Script_analysis/Coherence.py", line 91, in Calculate_power_spectra
+    mat_model = matrix_solution(J, L, S, noise_sigma, noise_tau, low_pass_add=low_pass_add)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ap6603/Script_analysis/matrix_spectrum.py", line 51, in __init__
+    self.noise_mat = (self.L @ self.D @ self.L.T).type(torch.cdouble)
+                      ~~~~~~~^~~~~~~~
+RuntimeError: mat1 and mat2 shapes cannot be multiplied (648x648 and 576x576)
+Processing results from: /home/ap6603/Script_analysis/Results/config_136
+Error: Power spectra data file not found at /home/ap6603/Script_analysis/Results/config_136/Data/power_spectra_fb_gain_all.npy

@@ -1,0 +1,40 @@
+Base directory: /home/ap6603/Script_analysis
+Config file path: /home/ap6603/Script_analysis/Results/config_150/config_150.yaml
+Results directory: /home/ap6603/Script_analysis/Results/config_150
+Config number: 150
+Current directory: /home/ap6603/Script_analysis/Job_scripts/Outputs
+Config file: /home/ap6603/Script_analysis/Results/config_150/config_150.yaml
+Config number: 150
+Current working directory: /home/ap6603/Script_analysis
+Attempting to load config from: /home/ap6603/Script_analysis/Results/config_150/config_150.yaml
+Contrast:   0%|          | 0/6 [00:00<?, ?it/s]
+Gamma (c=0.032):   0%|          | 0/1 [00:00<?, ?it/s][A
+Gamma (c=0.032): 100%|██████████| 1/1 [00:20<00:00, 20.56s/it][A
+                                                              [AContrast:  17%|█▋        | 1/6 [00:20<01:42, 20.57s/it]Adding low-pass noise: 2.41e-03 at freq 0.10
+
+Gamma (c=0.064):   0%|          | 0/1 [00:00<?, ?it/s][A
+Gamma (c=0.064): 100%|██████████| 1/1 [00:22<00:00, 22.09s/it][A
+                                                              [AContrast:  33%|███▎      | 2/6 [00:42<01:25, 21.47s/it]Adding low-pass noise: 2.41e-03 at freq 0.10
+
+Gamma (c=0.125):   0%|          | 0/1 [00:00<?, ?it/s][A
+Gamma (c=0.125): 100%|██████████| 1/1 [00:20<00:00, 20.46s/it][A
+                                                              [AContrast:  50%|█████     | 3/6 [01:03<01:03, 21.01s/it]Adding low-pass noise: 2.41e-03 at freq 0.10
+
+Gamma (c=0.25):   0%|          | 0/1 [00:00<?, ?it/s][A
+Gamma (c=0.25): 100%|██████████| 1/1 [00:21<00:00, 21.98s/it][A
+                                                             [AContrast:  67%|██████▋   | 4/6 [01:25<00:42, 21.39s/it]Adding low-pass noise: 2.41e-03 at freq 0.10
+
+Gamma (c=0.5):   0%|          | 0/1 [00:00<?, ?it/s][A
+Gamma (c=0.5): 100%|██████████| 1/1 [00:20<00:00, 20.66s/it][A
+                                                            [AContrast:  83%|████████▎ | 5/6 [01:45<00:21, 21.13s/it]Adding low-pass noise: 2.41e-03 at freq 0.10
+
+Gamma (c=1.0):   0%|          | 0/1 [00:00<?, ?it/s][A
+Gamma (c=1.0): 100%|██████████| 1/1 [00:20<00:00, 20.84s/it][A
+                                                            [AContrast: 100%|██████████| 6/6 [02:06<00:00, 21.03s/it]Contrast: 100%|██████████| 6/6 [02:06<00:00, 21.10s/it]
+Adding low-pass noise: 2.41e-03 at freq 0.10
+Saved all power spectra data to: /home/ap6603/Script_analysis/Results/config_150/Data/power_spectra_fb_gain_all.npy
+Processing results from: /home/ap6603/Script_analysis/Results/config_150
+Loading power spectra data from: /home/ap6603/Script_analysis/Results/config_150/Data/power_spectra_fb_gain_all.npy
+Global normalization factor (max power at c=1): 4440.113428223313
+Creating plot for gamma = 1.0
+Saved plot to: /home/ap6603/Script_analysis/Results/config_150/Plots/power_spectra_gamma_1.0.pdf

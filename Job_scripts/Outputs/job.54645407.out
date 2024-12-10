@@ -1,0 +1,34 @@
+Base directory: /home/ap6603/Script_analysis
+Config file path: /home/ap6603/Script_analysis/Results/config_170/config_170.yaml
+Results directory: /home/ap6603/Script_analysis/Results/config_170
+Config number: 170
+Current directory: /home/ap6603/Script_analysis/Job_scripts/Outputs
+Config file: /home/ap6603/Script_analysis/Results/config_170/config_170.yaml
+Config number: 170
+Current working directory: /home/ap6603/Script_analysis
+Attempting to load config from: /home/ap6603/Script_analysis/Results/config_170/config_170.yaml
+Contrast:   0%|          | 0/6 [00:00<?, ?it/s]
+Gamma (c=0.032):   0%|          | 0/1 [00:00<?, ?it/s][A
+Gamma (c=0.032): 100%|██████████| 1/1 [00:25<00:00, 25.21s/it][A
+                                                              [AContrast:  17%|█▋        | 1/6 [00:25<02:06, 25.21s/it]
+Gamma (c=0.064):   0%|          | 0/1 [00:00<?, ?it/s][A
+Gamma (c=0.064): 100%|██████████| 1/1 [00:21<00:00, 22.00s/it][A
+                                                              [AContrast:  33%|███▎      | 2/6 [00:47<01:33, 23.32s/it]
+Gamma (c=0.125):   0%|          | 0/1 [00:00<?, ?it/s][A
+Gamma (c=0.125): 100%|██████████| 1/1 [00:22<00:00, 22.11s/it][A
+                                                              [AContrast:  50%|█████     | 3/6 [01:09<01:08, 22.77s/it]
+Gamma (c=0.25):   0%|          | 0/1 [00:00<?, ?it/s][A
+Gamma (c=0.25): 100%|██████████| 1/1 [00:22<00:00, 22.28s/it][A
+                                                             [AContrast:  67%|██████▋   | 4/6 [01:31<00:45, 22.58s/it]
+Gamma (c=0.5):   0%|          | 0/1 [00:00<?, ?it/s][A
+Gamma (c=0.5): 100%|██████████| 1/1 [00:23<00:00, 23.53s/it][A
+                                                            [AContrast:  83%|████████▎ | 5/6 [01:55<00:22, 22.92s/it]
+Gamma (c=1.0):   0%|          | 0/1 [00:00<?, ?it/s][A
+Gamma (c=1.0): 100%|██████████| 1/1 [00:22<00:00, 22.59s/it][A
+                                                            [AContrast: 100%|██████████| 6/6 [02:17<00:00, 22.81s/it]Contrast: 100%|██████████| 6/6 [02:17<00:00, 22.95s/it]
+Saved all power spectra data to: /home/ap6603/Script_analysis/Results/config_170/Data/power_spectra_fb_gain_all.npy
+Processing results from: /home/ap6603/Script_analysis/Results/config_170
+Loading power spectra data from: /home/ap6603/Script_analysis/Results/config_170/Data/power_spectra_fb_gain_all.npy
+Global normalization factor (max power at c=1): 4440.113428223712
+Creating plot for gamma = 1.0
+Saved plot to: /home/ap6603/Script_analysis/Results/config_170/Plots/power_spectra_gamma_1.0.pdf

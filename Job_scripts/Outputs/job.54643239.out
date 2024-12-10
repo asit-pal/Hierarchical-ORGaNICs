@@ -1,0 +1,55 @@
+Base directory: /home/ap6603/Script_analysis
+Config file path: /home/ap6603/Script_analysis/Results/config_153/config_153.yaml
+Results directory: /home/ap6603/Script_analysis/Results/config_153
+Config number: 153
+Current directory: /home/ap6603/Script_analysis/Job_scripts/Outputs
+Config file: /home/ap6603/Script_analysis/Results/config_153/config_153.yaml
+Config number: 153
+Current working directory: /home/ap6603/Script_analysis
+Attempting to load config from: /home/ap6603/Script_analysis/Results/config_153/config_153.yaml
+Contrast:   0%|          | 0/6 [00:00<?, ?it/s]
+Gamma (c=0.032):   0%|          | 0/1 [00:00<?, ?it/s][A
+                                                      [AContrast:   0%|          | 0/6 [00:00<?, ?it/s]
+Traceback (most recent call last):
+  File "/home/ap6603/Script_analysis/Power_spectra.py", line 121, in <module>
+    main(config_file)  # Pass the config_file to main
+    ^^^^^^^^^^^^^^^^^
+  File "/home/ap6603/Script_analysis/Power_spectra.py", line 49, in main
+    Power_data = Calculate_power_spectra(
+                 ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ap6603/Script_analysis/Coherence.py", line 85, in Calculate_power_spectra
+    J, ss = updated_model.get_Jacobian(contrast, initial_conditions, method, t_span)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ap6603/Script_analysis/Model.py", line 213, in get_Jacobian
+    ss = get_steady_states(self, c, initial_conditions, t_span, method, Jacobian=True)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ap6603/Script_analysis/Model.py", line 328, in get_steady_states
+    sol = solve_ivp(model.dynm_func, t_span, initial_conditions, method=method, t_eval=t_eval, 
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/ext3/miniforge3/envs/torch-nn/lib/python3.11/site-packages/scipy/integrate/_ivp/ivp.py", line 621, in solve_ivp
+    solver = method(fun, t0, y0, tf, vectorized=vectorized, **options)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/ext3/miniforge3/envs/torch-nn/lib/python3.11/site-packages/scipy/integrate/_ivp/rk.py", line 94, in __init__
+    self.f = self.fun(self.t, self.y)
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/ext3/miniforge3/envs/torch-nn/lib/python3.11/site-packages/scipy/integrate/_ivp/base.py", line 154, in fun
+    return self.fun_single(t, y)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/ext3/miniforge3/envs/torch-nn/lib/python3.11/site-packages/scipy/integrate/_ivp/base.py", line 141, in fun_single
+    return self._fun(t, y[:, None]).ravel()
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/ext3/miniforge3/envs/torch-nn/lib/python3.11/site-packages/scipy/integrate/_ivp/base.py", line 23, in fun_wrapped
+    return np.asarray(fun(t, y), dtype=dtype)
+                      ^^^^^^^^^
+  File "/ext3/miniforge3/envs/torch-nn/lib/python3.11/site-packages/scipy/integrate/_ivp/ivp.py", line 593, in fun
+    return fun(t, x, *args)
+           ^^^^^^^^^^^^^^^^
+  File "/home/ap6603/Script_analysis/Model.py", line 162, in dynm_func
+    dy1,du1,dp1,ds1,dbeta1,dgamma1 = self.single_area_computation(y1,y1Plus,u1,u1Plus,p1,p1Plus,s1,s1Plus,beta1,gamma1,z1,y4Plus,n=1,n_next=4) # V1
+                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ap6603/Script_analysis/Model.py", line 98, in single_area_computation
+    dy = (1 / tau_y) * (-y + (beta*b) * z + (1 / (1 + pPlus)) * (np.matmul(Wnn, np.sqrt(yPlus)) + (gamma*g) * np.matmul(Wnn_next, np.sqrt(yPlus_next))))
+                                   ^
+NameError: name 'b' is not defined
+Processing results from: /home/ap6603/Script_analysis/Results/config_153
+Error: Power spectra data file not found at /home/ap6603/Script_analysis/Results/config_153/Data/power_spectra_fb_gain_all.npy

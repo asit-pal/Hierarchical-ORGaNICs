@@ -1,0 +1,19 @@
+Base directory: /home/ap6603/Script_analysis
+Config file path: /home/ap6603/Script_analysis/Results/config_157/config_157.yaml
+Results directory: /home/ap6603/Script_analysis/Results/config_157
+Config number: 157
+Current directory: /home/ap6603/Script_analysis/Job_scripts/Outputs
+Config file: /home/ap6603/Script_analysis/Results/config_157/config_157.yaml
+Config number: 157
+Current working directory: /home/ap6603/Script_analysis
+Attempting to load config from: /home/ap6603/Script_analysis/Results/config_157/config_157.yaml
+Traceback (most recent call last):
+  File "/home/ap6603/Script_analysis/Power_spectra.py", line 121, in <module>
+    main(config_file)  # Pass the config_file to main
+    ^^^^^^^^^^^^^^^^^
+  File "/home/ap6603/Script_analysis/Power_spectra.py", line 49, in main
+    Power_data = Calculate_power_spectra(
+                 ^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: Calculate_power_spectra() got an unexpected keyword argument 'low_pass_direct'
+Processing results from: /home/ap6603/Script_analysis/Results/config_157
+Error: Power spectra data file not found at /home/ap6603/Script_analysis/Results/config_157/Data/power_spectra_fb_gain_all.npy

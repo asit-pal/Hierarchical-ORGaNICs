@@ -1,0 +1,11 @@
+Base directory: /home/ap6603/Script_analysis
+Config file path: /home/ap6603/Script_analysis/Results/config_151/config_151.yaml
+Results directory: /home/ap6603/Script_analysis/Results/config_151
+Config number: 151
+Current directory: /home/ap6603/Script_analysis/Job_scripts/Outputs
+Config file: /home/ap6603/Script_analysis/Results/config_151/config_151.yaml
+Config number: 151
+Current working directory: /home/ap6603/Script_analysis
+Attempting to load config from: /home/ap6603/Script_analysis/Results/config_151/config_151.yaml
+Contrast:   0%|          | 0/6 [00:00<?, ?it/s]
+Gamma (c=0.032):   0%|          | 0/1 [00:00<?, ?it/s][Aslurmstepd: error: *** JOB 54643093 ON cs489 CANCELLED AT 2024-12-10T16:13:07 ***
