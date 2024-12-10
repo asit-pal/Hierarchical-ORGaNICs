@@ -2,35 +2,52 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=8
-#SBATCH --time=3:00:00
+#SBATCH --time=1:00:00
 #SBATCH --mem=12GB
 #SBATCH --job-name=Power_Spectra
 #SBATCH --output=job.%j.out
 
-module purge
+module purge # Clear any existing modules
 
 # Define base paths
-BASE_DIR="/home/ap6603/Script_analysis"
-SOURCE_CONFIG="${BASE_DIR}/configs/config.yaml"
+BASE_DIR="/home/ap6603/Script_analysis" # Base directory
+SOURCE_CONFIG="${BASE_DIR}/configs/config.yaml" # Source config file
 
 # Find the next available config number
 n=1
-while [ -d "${BASE_DIR}/Results/config_${n}" ]; do
+while [ -d "${BASE_DIR}/Results/config_${n}" ]; do # Check if results directory exists
     ((n++))
 done
 
+# specify the config number
+# n=91 #Change this to specify the config number (for plotting)
+
 # Create new results directory structure
 RESULTS_DIR="${BASE_DIR}/Results/config_${n}"
-mkdir -p "${RESULTS_DIR}/Data"
-mkdir -p "${RESULTS_DIR}/Plots"
+mkdir -p "${RESULTS_DIR}/Data" # Create data directory
+mkdir -p "${RESULTS_DIR}/Plots" # Create plots directory
 
 # Copy and modify config file
 NEW_CONFIG="${RESULTS_DIR}/config_${n}.yaml"
-cp "${SOURCE_CONFIG}" "${NEW_CONFIG}"
+cp "${SOURCE_CONFIG}" "${NEW_CONFIG}" # Copy source config to new config
 
 # Modify only Power_spectra/Feedback_gain parameters in the copied config
-sed -i '/Power_spectra:/,/Input_gain_beta1:/ s/gamma_vals: XXXX/gamma_vals: [0.0,0.25,0.5,0.75,1.0]/' "${NEW_CONFIG}"
-sed -i '/Power_spectra:/,/Input_gain_beta1:/ s/c_vals: XXXX/c_vals: [0.032,0.064,0.125,0.25,0.5,1.0]/' "${NEW_CONFIG}"
+sed -i '/Power_spectra:/,/Input_gain_beta1:/ s/gamma_vals: XXXX/gamma_vals: [1.0]/' "${NEW_CONFIG}" # Modify gamma_vals
+sed -i '/Power_spectra:/,/Input_gain_beta1:/ s/c_vals: XXXX/c_vals: [0.032,0.064,0.125,0.25,0.5,1.0]/' "${NEW_CONFIG}" # Modify c_vals
+
+# # #Modify alpha1 and alpha4 in the copied config
+# sed -i '/model_params:/ s/alpha1: 10.0/alpha1: 0.0/' "${NEW_CONFIG}" # Modify alpha1
+# sed -i '/model_params:/ s/alpha4: 10.0/alpha4: 0.0/' "${NEW_CONFIG}" # Modify alpha4
+
+# Modify noise parameters in the copied config
+sed -i 's/delta_tau: XXXX/delta_tau: 3.0/' "${NEW_CONFIG}" # Modify delta_tau
+sed -i 's/low_pass_add: XXXX/low_pass_add: true/' "${NEW_CONFIG}" # Modify low_pass_add
+sed -i 's/low_pass_direct: XXXX/low_pass_direct: false/' "${NEW_CONFIG}" # Modify low_pass_direct
+sed -i 's/get_simulated_taus: XXXX/get_simulated_taus: false/' "${NEW_CONFIG}" # Modify get_simulated_taus
+sed -i 's/poisson: XXXX/poisson: false/' "${NEW_CONFIG}" # Modify poisson
+sed -i 's/noise_sigma: XXXX/noise_sigma: 0.05/' "${NEW_CONFIG}" # Modify noise_sigma
+sed -i 's/noise_tau: XXXX/noise_tau: 0.3/' "${NEW_CONFIG}" # Modify noise_tau
+sed -i 's/noise: XXXX/noise: 0.01/' "${NEW_CONFIG}" # Modify noise
 
 # Debug: Print paths
 echo "Base directory: ${BASE_DIR}"
@@ -56,9 +73,16 @@ echo "Current directory: $(pwd)"
 echo "Config file: ${NEW_CONFIG}"
 echo "Config number: ${CONFIG_NUM}"
 
-# Run analysis
+
 python Power_spectra.py "${NEW_CONFIG}"
 
-# # Run plotting with config number
-python Plotting_power_spectra.py "${RESULTS_DIR}"
+python Plot_power_spectra_fixed_gamma.py "${RESULTS_DIR}"
+
+# python Plotting_power_spectra.py "${RESULTS_DIR}"
+
+# python Coherence_analysis.py "${NEW_CONFIG}"
+
+# python Plotting_coherence.py "${RESULTS_DIR}"
+
+# python Effective_time_constants.py "${NEW_CONFIG}"
 EOF

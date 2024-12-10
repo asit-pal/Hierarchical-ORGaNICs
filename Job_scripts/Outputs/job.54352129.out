@@ -1,0 +1,17 @@
+Base directory: /home/ap6603/Script_analysis
+Config file path: /home/ap6603/Script_analysis/Results/config_122/config_122.yaml
+Results directory: /home/ap6603/Script_analysis/Results/config_122
+Config number: 122
+Current directory: /home/ap6603/Script_analysis/Job_scripts/Outputs
+Config file: /home/ap6603/Script_analysis/Results/config_122/config_122.yaml
+Config number: 122
+Current working directory: /home/ap6603/Script_analysis
+Attempting to load config from: /home/ap6603/Script_analysis/Results/config_122/config_122.yaml
+Calculating effective timescales for gamma=1.0, contrast=0.032
+Calculating effective timescales for gamma=1.0, contrast=0.064
+Calculating effective timescales for gamma=1.0, contrast=0.125
+Calculating effective timescales for gamma=1.0, contrast=0.25
+Calculating effective timescales for gamma=1.0, contrast=0.5
+Calculating effective timescales for gamma=1.0, contrast=1.0
+Saved all timescale data to: /home/ap6603/Script_analysis/Results/config_122/Data/effective_timescales_all.npy
+Saved timescale summary to: /home/ap6603/Script_analysis/Results/config_122/Data/effective_timescales_summary.npy

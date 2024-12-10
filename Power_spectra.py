@@ -44,14 +44,8 @@ def main(config_file):
     
     # Run analyses based on config
     if config['Power_spectra']['Feedback_gain']['enabled']:
-        run_feedback_gain_analysis(Ring_Model, i, config, data_dir)
-    
-    if config['Power_spectra']['Input_gain_beta1']['enabled']:
-        run_input_gain_beta1_analysis(Ring_Model, i, config, data_dir)
-
-def run_feedback_gain_analysis(Ring_Model, i, config, data_dir):
-    fb_config = config['Power_spectra']['Feedback_gain']
-    for contrast in fb_config['c_vals']:
+        contrast_vals = config['Power_spectra']['Feedback_gain']['c_vals']
+        gamma_vals = config['Power_spectra']['Feedback_gain']['gamma_vals']
         Power_data = Calculate_power_spectra(
             Ring_Model,
             i,
@@ -60,20 +54,26 @@ def run_feedback_gain_analysis(Ring_Model, i, config, data_dir):
             input_gain_beta4=False,
             delta_tau=config['noise_params']['delta_tau'] * Ring_Model.params['tau'],
             noise=config['noise_params']['noise'],
-            baseline=0.000,
-            poisson=False,
-            contrast=contrast,
+            poisson=config['noise_params']['poisson'],
+            get_simulated_taus=config['noise_params']['get_simulated_taus'],
+            low_pass_add=config['noise_params']['low_pass_add'],
+            low_pass_direct=config['noise_params']['low_pass_direct'],
+            noise_sigma=config['noise_params']['noise_sigma'],
+            noise_tau=config['noise_params']['noise_tau'],
+            contrast_vals=contrast_vals,
             method='RK45',
-            gamma_vals=fb_config['gamma_vals']
+            gamma_vals=gamma_vals,
+            min_freq=0.1,
+            max_freq=200,
+            n_freq_mat=500,
+            t_span=[0, 6],
         )
-        # Save Power_data
-        filename = f'power_fb_gain_contrast_{contrast}.npy'
-        np.save(os.path.join(data_dir, filename), Power_data)
-    # return Power_data
-
-def run_input_gain_beta1_analysis(Ring_Model, i, config, data_dir):
-    beta1_config = config['Power_spectra']['Input_gain_beta1']
-    for contrast in beta1_config['c_vals']:
+        # Save all data to a single file
+        save_power_spectra(Power_data, data_dir, 'fb_gain')
+    
+    if config['Power_spectra']['Input_gain_beta1']['enabled']:
+        contrast_vals = config['Power_spectra']['Input_gain_beta1']['c_vals']
+        beta1_vals = config['Power_spectra']['Input_gain_beta1']['beta1_vals']
         Power_data = Calculate_power_spectra(
             Ring_Model,
             i,
@@ -82,14 +82,34 @@ def run_input_gain_beta1_analysis(Ring_Model, i, config, data_dir):
             input_gain_beta4=False,
             delta_tau=config['noise_params']['delta_tau'] * Ring_Model.params['tau'],
             noise=config['noise_params']['noise'],
-            contrast=contrast,
+            poisson=config['noise_params']['poisson'],
+            get_simulated_taus=config['noise_params']['get_simulated_taus'],
+            low_pass=config['noise_params']['low_pass'],
+            noise_sigma=config['noise_params']['noise_sigma'],
+            noise_tau=config['noise_params']['noise_tau'],
+            contrast_vals=contrast_vals,
             method='RK45',
-            beta1_vals=beta1_config['beta1_vals']
+            beta1_vals=beta1_vals
         )
-        # Save Power_data
-        filename = f'power_beta1_contrast_{contrast}.npy'
-        np.save(os.path.join(data_dir, filename), Power_data)
-    # return Power_data
+        save_power_spectra(Power_data, data_dir, 'input_beta1_gain')
+    
+def save_power_spectra(power_data, data_dir, gain_type):
+    """
+    Save power spectra data to a single file.
+    
+    Args:
+        power_data (dict): Dictionary containing power spectra data
+        data_dir (str): Directory to save the data
+        gain_type (str): Type of gain ('fb', 'beta1', or 'beta4')
+    """
+    # Create data directory if it doesn't exist
+    os.makedirs(data_dir, exist_ok=True)
+    
+    # Save all data to a single file
+    filename = f'power_spectra_{gain_type}_all.npy'
+    filepath = os.path.join(data_dir, filename)
+    np.save(filepath, power_data)
+    print(f"Saved all power spectra data to: {filepath}")
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
