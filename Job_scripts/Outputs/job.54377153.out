@@ -1,31 +1,0 @@
-Base directory: /home/ap6603/Script_analysis
-Config file path: /home/ap6603/Script_analysis/Results/config_129/config_129.yaml
-Results directory: /home/ap6603/Script_analysis/Results/config_129
-Config number: 129
-Current directory: /home/ap6603/Script_analysis/Job_scripts/Outputs
-Config file: /home/ap6603/Script_analysis/Results/config_129/config_129.yaml
-Config number: 129
-Current working directory: /home/ap6603/Script_analysis
-Attempting to load config from: /home/ap6603/Script_analysis/Results/config_129/config_129.yaml
-Contrast:   0%|          | 0/6 [00:00<?, ?it/s]
-Gamma (c=0.032):   0%|          | 0/1 [00:00<?, ?it/s][A
-                                                      [AContrast:   0%|          | 0/6 [00:09<?, ?it/s]
-Traceback (most recent call last):
-  File "/home/ap6603/Script_analysis/Power_spectra.py", line 121, in <module>
-    main(config_file)  # Pass the config_file to main
-    ^^^^^^^^^^^^^^^^^
-  File "/home/ap6603/Script_analysis/Power_spectra.py", line 49, in main
-    Power_data = Calculate_power_spectra(
-                 ^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/ap6603/Script_analysis/Coherence.py", line 93, in Calculate_power_spectra
-    power_matrix, _ = mat_model.auto_spectrum(i=i, freq=freq_mat)
-                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/ap6603/Script_analysis/matrix_spectrum.py", line 116, in auto_spectrum
-    S = self.spectral_matrix(freq, J)
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/ap6603/Script_analysis/matrix_spectrum.py", line 95, in spectral_matrix
-    self.noise_mat = (L @ self.D @ L.T).type(torch.cdouble)
-                      ~~^~~~~~~~
-TypeError: unsupported operand type(s) for @: 'numpy.float64' and 'Tensor'
-Processing results from: /home/ap6603/Script_analysis/Results/config_129
-Error: Power spectra data file not found at /home/ap6603/Script_analysis/Results/config_129/Data/power_spectra_fb_gain_all.npy
