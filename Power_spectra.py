@@ -57,7 +57,6 @@ def main(config_file):
             poisson=config['noise_params']['poisson'],
             get_simulated_taus=config['noise_params']['get_simulated_taus'],
             low_pass_add=config['noise_params']['low_pass_add'],
-            low_pass_direct=config['noise_params']['low_pass_direct'],
             noise_sigma=config['noise_params']['noise_sigma'],
             noise_tau=config['noise_params']['noise_tau'],
             contrast_vals=contrast_vals,
