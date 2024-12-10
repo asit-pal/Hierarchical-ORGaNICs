@@ -207,10 +207,13 @@ class RingModel:
         
         '''
         # Get steady states
+        N = self.N
         ss = get_steady_states(self, c, initial_conditions, t_span, method, Jacobian=True)
         ss = np.array(ss).flatten()  # Flatten the steady state array
-        # add a small constant to the ss
-        ss = ss + 1e-7 # TODO: delete this
+        # add a small constant to the ss of y1Plus and y4Plus
+        # ss[1*N:2*N] = ss[1*N:2*N] + 1e-7
+        # ss[3*N:4*N] = ss[3*N:4*N] + 1e-7 # TODO: change this
+        # ss = ss + (1e-7)
         # Set contrast for Jacobian calculation
         self.contrast = c
 
@@ -243,7 +246,7 @@ class RingModel:
         stimulus_onset : bool
             Whether the stimulus onset is to be considered.
         onset_time : float
-            The time of the stimulus onset.
+            The team of the sitemulius onset.
         initial_contrast : float
             The initial contrast value.
         Returns:
@@ -293,6 +296,8 @@ class RingModel:
         y4 = np.sqrt(z4**2 / (self.params['sigma4']**2 + norm2))
         y4Plus = relu(y4, self.rectify) ** 2 
         return y1Plus, y4Plus
+    
+
     
     
     
@@ -382,5 +387,8 @@ def Contrast_response_curve(model,params,c_vals,gamma_vals,method, t_span,initia
             steady_states[(gamma, c)] = steady_state
 
     return steady_states
+
+
+
 
 

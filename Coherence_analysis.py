@@ -2,29 +2,31 @@
 import yaml
 import numpy as np
 import os
+import sys
 from Create_weight_matrices import setup_parameters
 from Model import RingModel
-from Coherence import calculate_coherence
+from Coherence import Calculate_coherence 
 
-def load_config(config_path='configs/config.yaml'):
-    with open(config_path, 'r') as f:
-        return yaml.safe_load(f)
-
-def main():
-    # Load config
-    config = load_config()
+def main(config_file):
+    print(f"Current working directory: {os.getcwd()}")
+    print(f"Attempting to load config from: {config_file}")
     
-    # Find next available config number
-    config_num = 1
-    while os.path.exists(os.path.join('Results', f'config{config_num}')):
-        config_num += 1
+    # Load config from yaml file
+    try:
+        with open(config_file, 'r') as f:
+            config = yaml.safe_load(f)
+    except FileNotFoundError:
+        print(f"Error: Config file '{config_file}' not found")
+        print(f"Absolute path: {os.path.abspath(config_file)}")
+        sys.exit(1)
+    except yaml.YAMLError as e:
+        print(f"Error parsing config file: {e}")
+        sys.exit(1)
     
-    # Create folder with incremented number
-    folder_name = f'config{config_num}'
-    results_dir = os.path.join('Results', folder_name)
-    
-    # Create directory structure
-    os.makedirs(os.path.join(results_dir, 'Data', 'Coherence_data'), exist_ok=True)
+    # Get results directory from config file path
+    results_dir = os.path.dirname(config_file)
+    data_dir = os.path.join(results_dir, 'Data')
+    os.makedirs(data_dir, exist_ok=True)
 
     # Initialize model parameters
     params = setup_parameters(
@@ -44,15 +46,8 @@ def main():
 
     # Run analyses based on config
     if config['Coherence']['Feedback_gain']['enabled']:
-        run_feedback_gain_analysis(Ring_Model, i, j, config, results_dir)
-    
-    if config['Coherence']['Input_gain_beta1']['enabled']:
-        run_input_gain_beta1_analysis(Ring_Model, i, j, config, results_dir)
-
-def run_feedback_gain_analysis(Ring_Model, i, j, config, results_dir):
-    fb_config = config['Coherence']['Feedback_gain']
-    for contrast in fb_config['c_vals']:
-        coherence_data = calculate_coherence(
+        fb_config = config['Coherence']['Feedback_gain']
+        coherence_data = Calculate_coherence(
             Ring_Model,
             i, j,
             fb_gain=True,
@@ -60,18 +55,25 @@ def run_feedback_gain_analysis(Ring_Model, i, j, config, results_dir):
             input_gain_beta4=False,
             delta_tau=config['noise_params']['delta_tau'] * Ring_Model.params['tau'],
             noise=config['noise_params']['noise'],
-            contrast=contrast,
+            poisson=config['noise_params']['poisson'],
+            get_simulated_taus=config['noise_params']['get_simulated_taus'],
+            low_pass=config['noise_params']['low_pass'],
+            noise_sigma=config['noise_params']['noise_sigma'],
+            noise_tau=config['noise_params']['noise_tau'],
+            contrast_vals=fb_config['c_vals'],
             method='RK45',
-            gamma_vals=fb_config['gamma_vals']
+            gamma_vals=fb_config['gamma_vals'],
+            min_freq=0.1,
+            max_freq=200,
+            n_freq_mat=500,
+            t_span=fb_config['t_span']
         )
         if fb_config['save_data']:
-            np.save(os.path.join(results_dir, 'Data', 'Coherence_data', f'coherence_fb_gain_contrast_{contrast}.npy'),
-                    coherence_data)
-
-def run_input_gain_beta1_analysis(Ring_Model, i, j, config, results_dir):
-    beta1_config = config['Coherence']['Input_gain_beta1']
-    for contrast in beta1_config['c_vals']:
-        coherence_data = calculate_coherence(
+            save_coherence(coherence_data, data_dir, 'fb_gain')
+    
+    if config['Coherence']['Input_gain_beta1']['enabled']:
+        beta1_config = config['Coherence']['Input_gain_beta1']
+        coherence_data = Calculate_coherence(
             Ring_Model,
             i, j,
             fb_gain=False,
@@ -79,16 +81,47 @@ def run_input_gain_beta1_analysis(Ring_Model, i, j, config, results_dir):
             input_gain_beta4=False,
             delta_tau=config['noise_params']['delta_tau'] * Ring_Model.params['tau'],
             noise=config['noise_params']['noise'],
-            contrast=contrast,
+            poisson=config['noise_params']['poisson'],
+            get_simulated_taus=config['noise_params']['get_simulated_taus'],
+            low_pass=config['noise_params']['low_pass'],
+            noise_sigma=config['noise_params']['noise_sigma'],
+            noise_tau=config['noise_params']['noise_tau'],
+            contrast_vals=beta1_config['c_vals'],
             method='RK45',
             beta1_vals=beta1_config['beta1_vals'],
+            min_freq=0.1,
+            max_freq=200,
+            n_freq_mat=500,
             t_span=beta1_config['t_span']
         )
         if beta1_config['save_data']:
-            np.save(os.path.join(results_dir, 'Data', 'Coherence_data', f'coherence_input_gain_beta1_contrast_{contrast}.npy'),
-                    coherence_data)
+            save_coherence(coherence_data, data_dir, 'input_beta1_gain')
+
+def save_coherence(coherence_data, data_dir, gain_type):
+    """
+    Save coherence data to a single file.
+    
+    Args:
+        coherence_data (dict): Dictionary containing coherence data
+        data_dir (str): Directory to save the data
+        gain_type (str): Type of gain ('fb_gain' or 'input_beta1_gain')
+    """
+    # Create data directory if it doesn't exist
+    os.makedirs(data_dir, exist_ok=True)
+    
+    # Save all data to a single file
+    filename = f'coherence_{gain_type}_all.npy'
+    filepath = os.path.join(data_dir, filename)
+    np.save(filepath, coherence_data)
+    print(f"Saved coherence data to: {filepath}")
 
 if __name__ == "__main__":
-    main()
+    if len(sys.argv) != 2:
+        print("Usage: python Coherence_analysis.py path/to/config.yaml")
+        print(f"Arguments received: {sys.argv}")
+        sys.exit(1)
+    
+    config_file = sys.argv[1]
+    main(config_file)
 
 

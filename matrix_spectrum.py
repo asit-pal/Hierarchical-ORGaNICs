@@ -14,9 +14,25 @@ from functools import lru_cache
 device = torch.device("cpu")
 torch.set_default_dtype(torch.float64)
 
+def noise_power_spectrum(omega, sigma, tau):
+    """
+    Calculate the analytical power spectrum of a low-pass filtered white noise.
+    
+    Args:
+        freq (array): Frequency values in Hz
+        sigma (float): Noise amplitude
+        tau (float): Time constant of the filter in seconds
+        
+    Returns:
+        array: Power spectrum values
+    """
+    #angular frequency
+    # omega = 2 * np.pi * freq
+    dummy = (sigma**2) / (1 + (tau * omega)**2)
+    return dummy
 
 class matrix_solution:
-    def __init__(self, J=None, L=None, S=None):
+    def __init__(self, J=None, L=None, S=None, noise_sigma=None, noise_tau=None, low_pass_add=None):
         """
         This function initializes the matrices required for the matrix solution.
         :param J: Jacobian matrix
@@ -25,9 +41,13 @@ class matrix_solution:
         """
         self.N = None
         self.J = J
-        self.L = L
         self.S = S
         self.D = S**2
+        self.noise_sigma = noise_sigma
+        self.noise_tau = noise_tau
+        self.low_pass_add = low_pass_add
+
+        self.L = L
         self.noise_mat = (self.L @ self.D @ self.L.T).type(torch.cdouble)
 
     @property
@@ -53,7 +73,9 @@ class matrix_solution:
             J = self.J
         if J is None:
             raise ValueError("Jacobian matrix is not defined")
-
+        
+        low_pass_add = self.low_pass_add    
+        
         om = (2 * np.pi * freq).to(device)
         m = freq.size(0)
 
@@ -63,8 +85,11 @@ class matrix_solution:
         with torch.no_grad():
             for i in range(m):
                 S[i] = torch.inverse(
-                    J + 1j * om[i] * torch.eye(n, device=device)) @ self.noise_mat @ torch.inverse(
-                    torch.transpose(J - 1j * om[i] * torch.eye(n, device=device), 0, 1))
+                        J + 1j * om[i] * torch.eye(n, device=device)) @ self.noise_mat @ torch.inverse(
+                        torch.transpose(J - 1j * om[i] * torch.eye(n, device=device), 0, 1))
+                if low_pass_add:
+                    noise = noise_power_spectrum(om[i].item(), self.noise_sigma, self.noise_tau)
+                    S[i] += torch.eye(n, device=device) * noise
         return S
 
     def auto_spectrum(self, i=None, freq=None, J=None):

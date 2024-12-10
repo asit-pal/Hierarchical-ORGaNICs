@@ -69,6 +69,9 @@ def plot_steady_states(steady_states, c_vals, gamma_vals, fb_gain, input_gain_be
 
 
 def plot_coherence_data(coherence_data, gamma_vals, contrast, fb_gain, input_gain_beta1, input_gain_beta4, line_width=5, line_labelsize=42, legendsize=42):
+    # Set the backend to 'Agg' for headless environments
+    
+    
     fig, ax = plt.subplots(figsize=(14, 10))
     
     # Create a truncated viridis colormap that does not include the last yellow part
@@ -78,7 +81,7 @@ def plot_coherence_data(coherence_data, gamma_vals, contrast, fb_gain, input_gai
     norm = mcolors.Normalize(vmin=min(gamma_vals), vmax=max(gamma_vals))
 
     for gamma in gamma_vals:
-        key = f'contrast={contrast}_gamma={gamma}'
+        key = (gamma, contrast)  # Changed to match power_spectra format
         data = coherence_data[key]
         freq = data['freq']
         coh = data['coh']
@@ -99,23 +102,30 @@ def plot_coherence_data(coherence_data, gamma_vals, contrast, fb_gain, input_gai
         
         ax.semilogx(freq, coh, lw=line_width, linestyle=linestyle, label=label, color=color)
     
-    ax.set_xlabel(r'$\textnormal{Frequency (Hz)}$', fontsize=line_labelsize)
-    ax.set_ylabel(r'$\textnormal{V1-V2 Coherence}$', fontsize=line_labelsize)
+    # Fix the LaTeX formatting in labels
+    ax.set_xlabel(r'$\mathrm{Frequency\;(Hz)}$', fontsize=line_labelsize)
+    ax.set_ylabel(r'$\mathrm{V1\text{-}V2\;Coherence}$', fontsize=line_labelsize)
     ax.tick_params(axis='both', which='major', labelsize=line_labelsize)
     ax.legend(fontsize=legendsize, loc='best', frameon=False, handletextpad=0.2, handlelength=1.0, labelspacing=0.2)
 
-    try:
-        fig.tight_layout()
-    except:
-        plt.subplots_adjust(left=0.15, right=0.95, top=0.95, bottom=0.15)
+    # Use manual adjustment instead of tight_layout
+    plt.subplots_adjust(left=0.15, right=0.95, top=0.95, bottom=0.15)
     
     return fig, ax
 
 def plot_power_spectra_fixed_gamma(power_data, contrast_vals, gamma, line_width=5, line_labelsize=42, legendsize=42):
-    # Set the backend to 'Agg' for headless environments
-    import matplotlib
-    matplotlib.use('Agg')
+    """
+    Plot power spectra for a fixed gamma value across different contrasts.
+    Expects pre-normalized power data (normalized by max power at contrast=1).
     
+    Args:
+        power_data (dict): Dictionary containing normalized power spectra data
+        contrast_vals (list): List of contrast values to plot
+        gamma (float): The gamma value to plot
+        line_width (int): Width of plotted lines
+        line_labelsize (int): Size of axis labels
+        legendsize (int): Size of legend text
+    """
     fig, ax = plt.subplots(figsize=(14, 10))
     
     # Create a truncated viridis colormap that does not include the last yellow part
@@ -124,24 +134,15 @@ def plot_power_spectra_fixed_gamma(power_data, contrast_vals, gamma, line_width=
     
     norm = mcolors.Normalize(vmin=min(contrast_vals), vmax=max(contrast_vals))
     
-    # Find normalization factor from contrast 1
-    key_norm = (gamma, 1)
-    if key_norm not in power_data:
-        print(f"Warning: No power data found for contrast = 1 and gamma = {gamma}")
-        norm_factor = 1
-    else:
-        norm_factor = np.max(power_data[key_norm]['power'])
-        print(f"Normalization factor for c =1 and gamma = {gamma} is {norm_factor}")
-           
     for contrast in contrast_vals:
         key = (gamma, contrast)
         if key not in power_data:
             print(f"Warning: No power data found for contrast = {contrast} and gamma = {gamma}")
             continue
+            
         data = power_data[key]
         freq = data['freq']
-        # Normalize power by the normalization factor
-        power = data['power']/norm_factor
+        power = data['power']  # Data is already normalized
         
         # Get color from truncated colormap
         color = truncated_viridis(norm(contrast))
@@ -149,13 +150,18 @@ def plot_power_spectra_fixed_gamma(power_data, contrast_vals, gamma, line_width=
         # Label showing contrast value
         label = rf'$c={contrast}$'
         
-        ax.semilogx(freq, power, lw=line_width, linestyle='-', label=label, color=color)
+        ax.plot(freq, power, lw=line_width, linestyle='-', label=label, color=color)
     
     # Fix the LaTeX formatting in labels
     ax.set_xlabel(r'$\mathrm{Frequency\;(Hz)}$', fontsize=line_labelsize)
-    ax.set_ylabel(r'$\mathrm{V1\;Power}$', fontsize=line_labelsize)
+    ax.set_ylabel(r'$\mathrm{Normalized\;V1\;Power}$', fontsize=line_labelsize)
     ax.tick_params(axis='both', which='major', labelsize=line_labelsize)
     ax.legend(fontsize=legendsize, loc='best', frameon=False, handletextpad=0.2, handlelength=1.0, labelspacing=0.2)
+    # ax.set_xlim(0,100)
+    ax.set_yscale('log')
+    ax.set_xscale('log')
+    # Add title showing gamma value
+    ax.set_title(rf'$\gamma_1={gamma}$', fontsize=line_labelsize)
 
     # Use manual adjustment instead of tight_layout
     plt.subplots_adjust(left=0.15, right=0.95, top=0.95, bottom=0.15)
@@ -166,8 +172,7 @@ def plot_power_spectra_fixed_gamma(power_data, contrast_vals, gamma, line_width=
 
 def plot_power_spectra(power_data, gamma_vals, contrast, fb_gain, input_gain_beta1, input_gain_beta4, line_width=5, line_labelsize=42, legendsize=42):
     # Set the backend to 'Agg' for headless environments
-    import matplotlib
-    matplotlib.use('Agg')
+    
     
     fig, ax = plt.subplots(figsize=(14, 10))
     
@@ -197,7 +202,7 @@ def plot_power_spectra(power_data, gamma_vals, contrast, fb_gain, input_gain_bet
         # Use solid line style for all cases
         linestyle = '-'
         
-        ax.semilogx(freq, power, lw=line_width, linestyle=linestyle, label=label, color=color)
+        ax.loglog(freq, power, lw=line_width, linestyle=linestyle, label=label, color=color)
     
     # Fix the LaTeX formatting in labels
     ax.set_xlabel(r'$\mathrm{Frequency\;(Hz)}$', fontsize=line_labelsize)
@@ -632,3 +637,69 @@ def plot_pred_perf_vs_dim(performance_data, gamma_vals, contrast, fb_gain, input
         plt.subplots_adjust(left=0.15, right=0.95, top=0.95, bottom=0.15)
 
     return fig, ax
+
+def plot_decay_trajectories(decay_data, center_idx=None, plot_analytical=True, labelsize=18, legendsize=14):
+    """
+    Plot decay trajectories and their exponential fits for membrane potentials.
+    Only plots for the center neuron (N//2).
+    
+    Parameters:
+    -----------
+    decay_data : dict
+        Contains:
+        - time: array of time points
+        - curves: list of arrays containing decay curves
+        - tau_values: array of fitted time constants
+        - var_names: list of variable names
+        - analytical_taus: array of analytical time constants
+    center_idx : int, optional
+        Index of the neuron to plot. If None, uses N//2
+    plot_analytical : bool, optional
+        Whether to plot the analytical fit curve (default: True)
+    """
+    # Get data
+    var_names = decay_data['var_names']
+    time = decay_data['time']
+    if center_idx is None:
+        center_idx = decay_data['tau_values'].shape[1] // 2
+    
+    # Create subplots for each variable type
+    num_vars = len(var_names)
+    fig, axs = plt.subplots(num_vars, 1, figsize=(15, 4*num_vars))
+    if num_vars == 1:
+        axs = [axs]
+    
+    for i, ax in enumerate(axs):
+        # Get tau values for this variable type and center neuron
+        tau_numerical = decay_data['tau_values'][i, center_idx]
+        
+        # Plot original decay curve - accessing as list
+        y = decay_data['curves'][i][center_idx][:]
+        ax.plot(time, y, 'b-', label='Data', linewidth=2)
+        
+        # Plot numerical fit if valid
+        if tau_numerical > 0:
+            y_fit = y[0] * np.exp(-time/tau_numerical)
+            ax.plot(time, y_fit, 'r--', 
+                   label=f'Numerical Fit (τ = {tau_numerical:.3f})', 
+                   linewidth=2)
+        
+        # Plot analytical fit if requested
+        if plot_analytical:
+            tau_analytical = decay_data['analytical_taus'][i, center_idx]
+            if tau_analytical > 0:
+                y_analytical = y[0] * np.exp(-time/tau_analytical)
+                ax.plot(time, y_analytical, 'g:', 
+                       label=f'Analytical (τ = {tau_analytical:.3f})',
+                       linewidth=2)
+        
+        ax.set_title(f'{var_names[i]} Decay (Center Neuron)', fontsize=labelsize)
+        ax.set_xlabel('Time (s)', fontsize=labelsize)
+        ax.set_ylabel('Activity', fontsize=labelsize)
+        ax.set_yscale('log')
+        ax.legend(fontsize=legendsize)
+        ax.grid(True, which='both', linestyle='--', alpha=0.7)
+        ax.tick_params(axis='both', which='major', labelsize=labelsize-4)
+    
+    plt.tight_layout()
+    return fig, axs

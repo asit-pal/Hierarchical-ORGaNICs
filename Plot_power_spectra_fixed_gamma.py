@@ -5,9 +5,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 from Plotting import plot_power_spectra_fixed_gamma
 
-def power_spectra_fixed_gamma(results_dir):
+def plot_fixed_gamma_power_spectra(results_dir):
     """
     Create power spectra plots for each gamma value, showing different contrasts.
+    All power spectra are normalized by the maximum power at contrast=1 for each gamma.
     
     Args:
         results_dir (str): Path to the results directory containing config and data
@@ -30,31 +31,26 @@ def power_spectra_fixed_gamma(results_dir):
     gamma_vals = fb_config['gamma_vals']
     c_vals = fb_config['c_vals']
     
-    # Initialize power_data dictionary
-    power_data = {}
-    
-    # For each contrast value
-    for contrast in c_vals:
-        data_file = f'power_fb_gain_contrast_{contrast}.npy'
-        data_path = os.path.join(data_dir, data_file)
-        
-        if not os.path.exists(data_path):
-            print(f"Warning: No data file found for contrast = {contrast}")
-            continue
-            
-        # Load data for this contrast
-        contrast_data = np.load(data_path, allow_pickle=True).item()
-        
-        # For each gamma value
-        for gamma in gamma_vals:
-            # Get the data for this (gamma, contrast) pair
-            key = (gamma, contrast)
-            if key in contrast_data:
-                power_data[key] = contrast_data[key]
-    
-    if not power_data:
-        print("Error: No data found to plot")
+    # Load power spectra data from the single file
+    power_file = os.path.join(data_dir, 'power_spectra_fb_gain_all.npy')
+    if not os.path.exists(power_file):
+        print(f"Error: Power spectra data file not found at {power_file}")
         sys.exit(1)
+        
+    print(f"Loading power spectra data from: {power_file}")
+    power_data = np.load(power_file, allow_pickle=True).item()
+    
+    # Find normalization factor (maximum power at contrast=1)
+    norm_factor = max(np.max(power_data[key]['power']) for key in power_data.keys())
+    print(f"Global normalization factor (max power at c=1): {norm_factor}")
+    
+    # Normalize all power data by this single factor
+    normalized_power_data = {}
+    for key, data in power_data.items():
+        normalized_power_data[key] = {
+            'freq': data['freq'],
+            'power': data['power'] / norm_factor
+        }
     
     # Create plots directory if it doesn't exist
     plots_dir = os.path.join(results_dir, 'Plots')
@@ -67,7 +63,7 @@ def power_spectra_fixed_gamma(results_dir):
         
         # Create the plot
         fig, ax = plot_power_spectra_fixed_gamma(
-            power_data,
+            normalized_power_data,
             c_vals,
             gamma,
             line_width=5,
@@ -83,9 +79,9 @@ def power_spectra_fixed_gamma(results_dir):
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
-        print("Usage: python Plot_power_spectra_fixed_gamma.py /path/to/results_dir")
+        print("Usage: python Plot_power_spectra_fixed_gamma.py /path/to/results_dir_config_n")
         sys.exit(1)
     
     results_dir = sys.argv[1]
     print(f"Processing results from: {results_dir}")
-    power_spectra_fixed_gamma(results_dir) 
+    plot_fixed_gamma_power_spectra(results_dir) 
