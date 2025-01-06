@@ -4,10 +4,10 @@ import numpy as np
 import os
 import sys
 import matplotlib.pyplot as plt
-from Create_weight_matrices import setup_parameters
-from Model import RingModel
+from Utils.Create_weight_matrices import setup_parameters
+from Models.Model import RingModel
 from Plotting import plot_decay_trajectories
-from Coherence import get_effective_timescales
+from Utils.Coherence import get_effective_timescales
 
 def main(config_file):
     print(f"Current working directory: {os.getcwd()}")

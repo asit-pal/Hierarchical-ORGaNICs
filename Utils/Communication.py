@@ -1,10 +1,10 @@
 import numpy as np
 from control import lyap
 from tqdm import tqdm
-from Coherence import create_S_matrix, create_L_matrix
+from Utils.Coherence import create_S_matrix, create_L_matrix
 import copy
 import torch
-from matrix_spectrum import matrix_solution
+from Utils.matrix_spectrum import matrix_solution
 
 def correlation(J, L, D,bw_y1_y2=False):
     """
@@ -224,53 +224,62 @@ def performance(P1, P2, P3):
 #     return pred_perf, dims
 
 
-def Calculate_Pred_perf_Dim(model,gamma_vals,contrast,g,fb_gain,input_gain_beta1,input_gain_beta4,method,com_params,delta_tau,noise,t_span=[0,6]):
+def Calculate_Pred_perf_Dim(model,gamma_vals,contrast_vals,fb_gain,input_gain_beta1,input_gain_beta4,delta_tau,noise,method,low_pass_add,noise_sigma,noise_tau,com_params,t_span=[0,6]):
     N = model.params['N']
+    params = model.params
     initial_conditions = np.ones((model.num_var * N)) * 0.01
     performance_data = {}
     
-    for gamma in tqdm(gamma_vals):
-        updated_model = copy.deepcopy(model)
-        if fb_gain:
-            updated_model.params['gamma1'] = gamma
-        elif input_gain_beta1:
-            updated_model.params['beta1'] = gamma
-        elif input_gain_beta4:
-            updated_model.params['beta4'] = gamma
-        
-        updated_model.params['g1'] = g
-        
-        perf_V1 = np.zeros((com_params['num_trials'], com_params['V1_t']))
-        perf_V4 = np.zeros((com_params['num_trials'], com_params['V4_t']))
-        # Get Jacobian
-        J, ss = updated_model.get_Jacobian( contrast,initial_conditions, method, t_span)
-        
-        # Create S and L matrices
-        S = create_S_matrix(updated_model)
-        D = S**2
-        L = create_L_matrix(updated_model, ss, delta_tau, noise)
-
-        # Compute correlation matrices
-        Py = correlation(J, L, D, com_params['bw_y1_y4'])
-
-
-        for kl in range(com_params['num_trials']):
-            V1s_idx, V1t_idx, V4t_idx = random_permutation(com_params['N1_y_idx'], com_params['N4_y_idx'], com_params['V1_s'],com_params['V1_t'],com_params['V4_t'])
-            dims_V1, dims_V4, perf_V1[kl, :], perf_V4[kl, :] = analysis_ss(Py, V1s_idx, V1t_idx, V4t_idx)
+    for contrast in tqdm(contrast_vals):
+        for gamma in tqdm(gamma_vals):
+            updated_params = copy.deepcopy(params)
+            if fb_gain:
+                updated_params['gamma1'] = gamma
+            elif input_gain_beta1:
+                updated_params['beta1'] = gamma
+            elif input_gain_beta4:
+                updated_params['beta4'] = gamma
             
-        # Store performance data in the dictionary
-        performance_data[gamma,contrast] = {
-            'V1': {
-                'mean': np.mean(perf_V1, axis=0),
-                'std': np.std(perf_V1, axis=0),
-                'dims': dims_V1
-            },
-            'V4': {
-                'mean': np.mean(perf_V4, axis=0),
-                'std': np.std(perf_V4, axis=0),
-                'dims': dims_V4
+            updated_model = copy.deepcopy(model)
+            updated_model.params = updated_params
+        
+        
+            perf_V1 = np.zeros((com_params['num_trials'], com_params['V1_t']))
+            perf_V4 = np.zeros((com_params['num_trials'], com_params['V4_t']))
+            # Get Jacobian
+            J, ss = updated_model.get_Jacobian( contrast,initial_conditions, method, t_span)
+            J = torch.tensor(J, dtype=torch.float32)
+            # Create S and L matrices
+            S = create_S_matrix(updated_model)
+            D = S**2
+            L = create_L_matrix(updated_model, ss, delta_tau, noise,poisson=None,get_simulated_taus=None)
+
+            # Compute correlation matrices
+            Py = correlation(J, L, D, com_params['bw_y1_y4'])
+            
+            # Add sigma^2/2*tau to the diagonal of Py
+            if low_pass_add:
+                diagonal_matrix = np.eye(Py.shape[0]) * (noise_sigma**2 / (2 * noise_tau))
+                Py = Py + diagonal_matrix
+
+
+            for kl in range(com_params['num_trials']):
+                V1s_idx, V1t_idx, V4t_idx = random_permutation(com_params['N1_y_idx'], com_params['N4_y_idx'], com_params['V1_s'],com_params['V1_t'],com_params['V4_t'])
+                dims_V1, dims_V4, perf_V1[kl, :], perf_V4[kl, :] = analysis_ss(Py, V1s_idx, V1t_idx, V4t_idx)
+                
+            # Store performance data in the dictionary
+            performance_data[gamma,contrast] = {
+                'V1': {
+                    'mean': np.mean(perf_V1, axis=0),
+                    'std': np.std(perf_V1, axis=0),
+                    'dims': dims_V1
+                },
+                'V4': {
+                    'mean': np.mean(perf_V4, axis=0),
+                    'std': np.std(perf_V4, axis=0),
+                    'dims': dims_V4
+                }
             }
-        }
 
     return performance_data
 

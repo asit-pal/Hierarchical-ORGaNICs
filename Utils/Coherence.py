@@ -2,14 +2,14 @@ import numpy as np
 import torch
 import copy
 from tqdm import tqdm
-from matrix_spectrum import matrix_solution
-from Model import get_steady_states
+from Utils.matrix_spectrum import matrix_solution
+from Models.Model import get_steady_states
 from scipy.integrate import solve_ivp
 import os
-from matrix_spectrum import noise_power_spectrum
+from Utils.matrix_spectrum import noise_power_spectrum
 
 
-def Calculate_coherence(model, i, j, fb_gain, input_gain_beta1, input_gain_beta4, delta_tau, noise, poisson, get_simulated_taus, low_pass, noise_sigma, noise_tau, contrast_vals, method, gamma_vals, min_freq=1, max_freq=5e2, n_freq_mat=100, t_span=[0, 6]):
+def Calculate_coherence(model, i, j, fb_gain, input_gain_beta1, input_gain_beta4, delta_tau, noise, poisson, get_simulated_taus, low_pass_add, noise_sigma, noise_tau, contrast_vals, method, gamma_vals, min_freq=1, max_freq=5e2, n_freq_mat=100, t_span=[0, 6]):
     """
     Calculate coherence for all combinations of gamma and contrast values.
     Saves all data in a single file.
@@ -43,8 +43,8 @@ def Calculate_coherence(model, i, j, fb_gain, input_gain_beta1, input_gain_beta4
             L = create_L_matrix(updated_model, ss, delta_tau, noise, poisson=poisson, get_simulated_taus=get_simulated_taus)
 
             # Calculate coherence
-            mat_model = matrix_solution(J, L, S, noise_sigma, noise_tau)
-            coh_matrix, _ = mat_model.coherence(i=i, j=j, freq=freq_mat, low_pass=low_pass)
+            mat_model = matrix_solution(J, L, S, noise_sigma, noise_tau, low_pass_add=low_pass_add)
+            coh_matrix, _ = mat_model.coherence(i=i, j=j, freq=freq_mat)
 
             # Store data with (gamma, contrast) tuple as key
             key = (gamma, contrast)

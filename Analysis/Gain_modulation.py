@@ -1,8 +1,8 @@
 # Essential imports
 import autograd.numpy as np
 import tqdm
-from Create_weight_matrices import *
-from Model import *
+from Utils.Create_weight_matrices import *
+from Models.Model import *
 from Plotting import *
 
 # Initialize model parameters
