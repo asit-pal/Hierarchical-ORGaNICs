@@ -3,9 +3,9 @@ import yaml
 import numpy as np
 import os
 import sys
-from Create_weight_matrices import setup_parameters
-from Model import RingModel
-from Communication import Calculate_Pred_perf_Dim, Calculate_Fano_Factor
+from Utils.Create_weight_matrices import setup_parameters
+from Models.Model import RingModel
+from Utils.Communication import Calculate_Pred_perf_Dim, Calculate_Fano_Factor
 
 def main(config_file):
     print(f"Current working directory: {os.getcwd()}")

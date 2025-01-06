@@ -18,15 +18,14 @@ noise_params:
   noise_sigma: XXXX    # Amplitude of low-pass filtered noise
   noise_tau: XXXX     # Time constant of low-pass filter in seconds
   low_pass_add: XXXX     # Whether to add low-pass filtered noise
-  low_pass_direct: XXXX  # Whether to use direct low-pass filter
   get_simulated_taus: XXXX  # Whether to use simulated time constants
   poisson: XXXX  # Whether to use poisson noise
 
 Communication:
   Feedback_gain:
     enabled: True
-    gamma_vals: [0.5]
-    c_vals: [0.032, 1.0]
+    gamma_vals: [0.5,1.0]
+    c_vals: [0.032, 0.064, 0.125, 0.25, 0.5, 1.0]
     t_span: [0, 6]
     save_data: true
 

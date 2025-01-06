@@ -2,9 +2,9 @@
 import torch
 import numpy as np
 from tqdm.notebook import tqdm
-from Create_weight_matrices import setup_parameters
-from Model import RingModel
-from Communication import calculate_pred_performance_freq, calculate_dim_vs_freq
+from Utils.Create_weight_matrices import setup_parameters
+from Models.Model import RingModel
+from Utils.Communication import calculate_pred_performance_freq, calculate_dim_vs_freq
 
 # Initialize model parameters
 params = setup_parameters(tau=1e-3, kernel=None, N=36, M=None, tauPlus=1e-3)

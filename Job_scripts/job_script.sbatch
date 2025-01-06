@@ -20,7 +20,7 @@ while [ -d "${BASE_DIR}/Results/config_${n}" ]; do # Check if results directory 
 done
 
 # specify the config number
-# n=91 #Change this to specify the config number (for plotting)
+# n=191 #Change this to specify the config number (for plotting)
 
 # Create new results directory structure
 RESULTS_DIR="${BASE_DIR}/Results/config_${n}"
@@ -44,7 +44,7 @@ sed -i 's/delta_tau: XXXX/delta_tau: 3.0/' "${NEW_CONFIG}" # Modify delta_tau
 sed -i 's/low_pass_add: XXXX/low_pass_add: true/' "${NEW_CONFIG}" # Modify low_pass_add
 sed -i 's/get_simulated_taus: XXXX/get_simulated_taus: false/' "${NEW_CONFIG}" # Modify get_simulated_taus
 sed -i 's/poisson: XXXX/poisson: false/' "${NEW_CONFIG}" # Modify poisson
-sed -i 's/noise_sigma: XXXX/noise_sigma: 0.05/' "${NEW_CONFIG}" # Modify noise_sigma
+sed -i 's/noise_sigma: XXXX/noise_sigma: 0.01/' "${NEW_CONFIG}" # Modify noise_sigma
 sed -i 's/noise_tau: XXXX/noise_tau: 0.3/' "${NEW_CONFIG}" # Modify noise_tau
 sed -i 's/noise: XXXX/noise: 0.01/' "${NEW_CONFIG}" # Modify noise
 
@@ -73,15 +73,17 @@ echo "Config file: ${NEW_CONFIG}"
 echo "Config number: ${CONFIG_NUM}"
 
 
-python Power_spectra.py "${NEW_CONFIG}"
+# python ${BASE_DIR}/Analysis/Power_spectra_analysis.py "${NEW_CONFIG}"
 
-python Plot_power_spectra_fixed_gamma.py "${RESULTS_DIR}"
+# python ${BASE_DIR}/Plotting/Plot_power_spectra_fixed_gamma.py "${RESULTS_DIR}"
 
-# python Plotting_power_spectra.py "${RESULTS_DIR}"
+# python ${BASE_DIR}/Plotting/Plotting_power_spectra.py "${RESULTS_DIR}"
 
-# python Coherence_analysis.py "${NEW_CONFIG}"
+# python ${BASE_DIR}/Analysis/Coherence_analysis.py "${NEW_CONFIG}"
 
-# python Plotting_coherence.py "${RESULTS_DIR}"
+# python ${BASE_DIR}/Plotting/Plotting_coherence.py "${RESULTS_DIR}"
 
-# python Effective_time_constants.py "${NEW_CONFIG}"
+python ${BASE_DIR}/Analysis/Communication_analysis.py "${NEW_CONFIG}"
+
+python ${BASE_DIR}/Plotting/Plotting_communication_analysis.py "${RESULTS_DIR}"
 EOF

@@ -5,7 +5,7 @@ import sys
 import yaml
 from Plotting import plot_power_spectra 
 
-def plot_feedback_gain_results(results_dir,gain_type):
+def plot_feedback_gain_results(results_dir):
     """
     Plot power spectra for feedback gain analysis.
     
@@ -40,6 +40,10 @@ def plot_feedback_gain_results(results_dir,gain_type):
     fb_config = config['Power_spectra']['Feedback_gain']
     gamma_vals = fb_config['gamma_vals']
     c_vals = fb_config['c_vals']
+    if fb_config['enabled']:
+        gain_type = 'fb_gain'
+    else:
+        gain_type = 'input_gain_beta1'
     
     print(f"Processing data for contrasts: {c_vals}")
     print(f"With gamma values: {gamma_vals}")
@@ -101,4 +105,4 @@ if __name__ == "__main__":
     
     results_dir = sys.argv[1]
     print(f"Processing results from: {results_dir}")
-    plot_feedback_gain_results(results_dir,'fb_gain')
+    plot_feedback_gain_results(results_dir)

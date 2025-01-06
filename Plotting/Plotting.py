@@ -576,15 +576,83 @@ def plot_performance_vs_freq(performance_data, gamma_vals,contrast, fb_gain, inp
         plt.subplots_adjust(left=0.15, right=0.95, top=0.95, bottom=0.15)
     return fig, ax
 
-def plot_pred_perf_vs_dim(performance_data, gamma_vals, contrast, fb_gain, input_gain_beta1, input_gain_beta4, labelsize=42, legendsize=42):
-    colors = ['#DC143C', '#00BFFF','#32CD32','#000000']  # Red for gamma_vals[0], Blue for gamma_vals[1], Green for gamma_vals[2],
-    fig, ax = plt.subplots(figsize=(12, 10))
+# def plot_pred_perf_vs_dim(performance_data, gamma_vals, contrast, fb_gain, input_gain_beta1, input_gain_beta4, labelsize=42, legendsize=42):
+#     colors = ['#DC143C', '#00BFFF','#32CD32','#000000']  # Red for gamma_vals[0], Blue for gamma_vals[1], Green for gamma_vals[2],
+#     fig, ax = plt.subplots(figsize=(12, 10))
+    
+#     custom_handles = []
+
+#     for i, (gamma, color) in enumerate(zip(gamma_vals, colors)):
+#         data = performance_data[gamma, contrast]
+
+#         # Retrieve V1 and V4 data
+#         V1_mean = data['V1']['mean']
+#         V1_std = data['V1']['std']
+#         V1_dims = data['V1']['dims']
+#         V4_mean = data['V4']['mean']
+#         V4_std = data['V4']['std']
+#         V4_dims = data['V4']['dims']
+
+#         # Fill between for V1 data
+#         ax.fill_between(V1_dims, V1_mean - V1_std, V1_mean + V1_std, color='gray', alpha=0.1)
+#         ax.plot(V1_dims, V1_mean, marker='s', linestyle='None', markersize=12,  color=color, markeredgecolor='black')
+
+#         # Fill between for V4 data
+#         ax.fill_between(V4_dims, V4_mean - V4_std, V4_mean + V4_std, color='gray', alpha=0.1)
+#         ax.plot(V4_dims, V4_mean, marker='o', markersize=12,   linestyle='None', color=color,markeredgecolor='black')
+
+#         if fb_gain:
+#             label = rf'$\gamma_1={gamma:.2f}$'
+#         elif input_gain_beta1:
+#             label = rf'$\beta_1={gamma:.2f}$'
+#         elif input_gain_beta4:
+#             label = rf'$\beta_4={gamma:.2f}$'
+        
+#         custom_handles.append(mpatches.Patch(color=color, label=label))
+
+#     # First legend for gamma/beta values
+#     legend1 = ax.legend(handles=custom_handles, fontsize=legendsize, loc='upper left', frameon=False, handletextpad=0.1, labelspacing=0.15, handlelength=1.0)
+#     ax.add_artist(legend1)  # Add first legend back to the plot
+
+#     marker_legend = [
+#         mlines.Line2D([0], [0], color='black', marker='o', linestyle='None', markersize=10, label=r'$\textnormal{V1-V2}$' ),
+#         mlines.Line2D([0], [0], color='black', marker='s', linestyle='None', markersize=10, label=r'$\textnormal{V1-V1}$'),
+#     ]
+#     legend2 = ax.legend(handles=marker_legend, loc='upper right', bbox_to_anchor=(0.68, 1.0), fontsize=legendsize, frameon=False, handletextpad=-0.2, labelspacing=0.15)
+#     ax.add_artist(legend2)  # Add second legend to the plot
+
+#     ax.set_xlabel(r'$\textnormal{Dimensions}$', fontsize=labelsize, fontweight='bold')
+#     ax.set_ylabel(r'$\textnormal{Prediction performance}$', fontsize=labelsize, fontweight='bold')
+#     ax.tick_params(axis='both', which='major', labelsize=labelsize)
+#     # ax.set_title(rf'$\textnormal{{Contrast}}={contrast}$', fontsize=labelsize, fontweight='bold')
+#     # Set x-axis ticks to integers with interval of 2
+#     x_min, x_max = ax.get_xlim()
+#     x_ticks = range(int(x_min), int(x_max) + 2, 2)
+#     ax.set_xticks(x_ticks)
+#     ax.set_xticklabels([rf'$\textnormal{x}$' for x in x_ticks])
+
+#     try:
+#         fig.tight_layout()
+#     except:
+#         plt.subplots_adjust(left=0.15, right=0.95, top=0.95, bottom=0.15)
+
+#     return fig, ax
+
+def plot_pred_perf_vs_dim(performance_data, gamma_vals, contrast, fb_gain, input_gain_beta1, input_gain_beta4, line_width=5, line_labelsize=42, legendsize=42):
+    """
+    Plot prediction performance versus dimensions with original color scheme.
+    """
+    colors = ['#DC143C', '#00BFFF', '#32CD32', '#000000']  # Red, Blue, Green, Black
+    fig, ax = plt.subplots(figsize=(14, 10))
     
     custom_handles = []
-
-    for i, (gamma, color) in enumerate(zip(gamma_vals, colors)):
+    
+    # Create marker styles for V1 and V4
+    markers = {'V1': 's', 'V4': 'o'}
+    
+    for gamma, color in zip(gamma_vals, colors):
         data = performance_data[gamma, contrast]
-
+        
         # Retrieve V1 and V4 data
         V1_mean = data['V1']['mean']
         V1_std = data['V1']['std']
@@ -592,15 +660,22 @@ def plot_pred_perf_vs_dim(performance_data, gamma_vals, contrast, fb_gain, input
         V4_mean = data['V4']['mean']
         V4_std = data['V4']['std']
         V4_dims = data['V4']['dims']
-
-        # # Fill between for V1 data
-        # ax.fill_between(V1_dims, V1_mean - V1_std, V1_mean + V1_std, color='gray', alpha=0.1)
-        # ax.plot(V1_dims, V1_mean, marker='s', linestyle='None', markersize=12,  color=color, markeredgecolor='black')
-
+        
+        # Fill between for V1 data
+        ax.fill_between(V1_dims, V1_mean - V1_std, V1_mean + V1_std, 
+                       color='gray', alpha=0.1)
+        ax.plot(V1_dims, V1_mean, marker=markers['V1'], 
+                linestyle='None', markersize=12,
+                color=color, markeredgecolor='black')
+        
         # Fill between for V4 data
-        ax.fill_between(V4_dims, V4_mean - V4_std, V4_mean + V4_std, color='gray', alpha=0.1)
-        ax.plot(V4_dims, V4_mean, marker='o', markersize=12,   linestyle='None', color=color,markeredgecolor='black')
-
+        ax.fill_between(V4_dims, V4_mean - V4_std, V4_mean + V4_std, 
+                       color='gray', alpha=0.1)
+        ax.plot(V4_dims, V4_mean, marker=markers['V4'], 
+                markersize=12, linestyle='None',
+                color=color, markeredgecolor='black')
+        
+        # Determine label based on which gain is being varied
         if fb_gain:
             label = rf'$\gamma_1={gamma:.2f}$'
         elif input_gain_beta1:
@@ -609,33 +684,45 @@ def plot_pred_perf_vs_dim(performance_data, gamma_vals, contrast, fb_gain, input
             label = rf'$\beta_4={gamma:.2f}$'
         
         custom_handles.append(mpatches.Patch(color=color, label=label))
-
+    
     # First legend for gamma/beta values
-    legend1 = ax.legend(handles=custom_handles, fontsize=legendsize, loc='upper left', frameon=False, handletextpad=0.1, labelspacing=0.15, handlelength=1.0)
-    ax.add_artist(legend1)  # Add first legend back to the plot
-
+    legend1 = ax.legend(handles=custom_handles, fontsize=legendsize,
+                       loc='upper left', frameon=False,
+                       handletextpad=0.1, labelspacing=0.15,
+                       handlelength=1.0)
+    ax.add_artist(legend1)
+    
+    # Second legend for markers
     marker_legend = [
-        mlines.Line2D([0], [0], color='black', marker='o', linestyle='None', markersize=10, label=r'$\textnormal{V1-V2}$' ),
-        mlines.Line2D([0], [0], color='black', marker='s', linestyle='None', markersize=10, label=r'$\textnormal{V1-V1}$'),
+        mlines.Line2D([0], [0], color='black', marker='o',
+                     linestyle='None', markersize=10,
+                     label=r'$\mathrm{V1\text{-}V2}$'),
+        mlines.Line2D([0], [0], color='black', marker='s',
+                     linestyle='None', markersize=10,
+                     label=r'$\mathrm{V1\text{-}V1}$')
     ]
-    legend2 = ax.legend(handles=marker_legend, loc='upper right', bbox_to_anchor=(0.68, 1.0), fontsize=legendsize, frameon=False, handletextpad=-0.2, labelspacing=0.15)
-    ax.add_artist(legend2)  # Add second legend to the plot
-
-    ax.set_xlabel(r'$\textnormal{Dimensions}$', fontsize=labelsize, fontweight='bold')
-    ax.set_ylabel(r'$\textnormal{Prediction performance}$', fontsize=labelsize, fontweight='bold')
-    ax.tick_params(axis='both', which='major', labelsize=labelsize)
-    # ax.set_title(rf'$\textnormal{{Contrast}}={contrast}$', fontsize=labelsize, fontweight='bold')
-    # Set x-axis ticks to integers with interval of 2
-    x_min, x_max = ax.get_xlim()
-    x_ticks = range(int(x_min), int(x_max) + 2, 2)
-    ax.set_xticks(x_ticks)
-    ax.set_xticklabels([rf'$\textnormal{x}$' for x in x_ticks])
-
-    try:
-        fig.tight_layout()
-    except:
-        plt.subplots_adjust(left=0.15, right=0.95, top=0.95, bottom=0.15)
-
+    legend2 = ax.legend(handles=marker_legend, loc='upper right',
+                       bbox_to_anchor=(0.68, 1.0), fontsize=legendsize,
+                       frameon=False, handletextpad=-0.2,
+                       labelspacing=0.15)
+    ax.add_artist(legend2)
+    
+    # Set labels and ticks
+    ax.set_xlabel(r'$\mathrm{Dimensions}$', fontsize=line_labelsize)
+    ax.set_ylabel(r'$\mathrm{Prediction\;performance}$', fontsize=line_labelsize)
+    ax.tick_params(axis='both', which='major', labelsize=line_labelsize)
+    
+    # Set x-axis ticks to integers
+    # x_min, x_max = ax.get_xlim()
+    x_min, x_max = 0, 8
+    ax.set_xlim(x_min, x_max)
+    # x_ticks = range(int(x_min), int(x_max) + 1, 2)
+    # ax.set_xticks(x_ticks)
+    # ax.set_xticklabels([rf'$\mathrm{{{x}}}$' for x in x_ticks])
+    
+    # Manual adjustment instead of tight_layout
+    plt.subplots_adjust(left=0.15, right=0.95, top=0.95, bottom=0.15)
+    
     return fig, ax
 
 def plot_decay_trajectories(decay_data, center_idx=None, plot_analytical=True, labelsize=18, legendsize=14):
