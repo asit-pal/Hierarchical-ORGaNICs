@@ -18,8 +18,6 @@ noise_params:
   noise_sigma: XXXX    # Amplitude of low-pass filtered noise
   noise_tau: XXXX     # Time constant of low-pass filter in seconds
   low_pass_add: XXXX     # Whether to add low-pass filtered noise
-  get_simulated_taus: XXXX  # Whether to use simulated time constants
-  poisson: XXXX  # Whether to use poisson noise
 
 Communication:
   Feedback_gain:

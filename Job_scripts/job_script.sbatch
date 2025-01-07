@@ -41,12 +41,12 @@ sed -i '/Power_spectra:/,/Input_gain_beta1:/ s/c_vals: XXXX/c_vals: [0.032,0.064
 
 # Modify noise parameters in the copied config
 sed -i 's/delta_tau: XXXX/delta_tau: 3.0/' "${NEW_CONFIG}" # Modify delta_tau
-sed -i 's/low_pass_add: XXXX/low_pass_add: true/' "${NEW_CONFIG}" # Modify low_pass_add
-sed -i 's/get_simulated_taus: XXXX/get_simulated_taus: false/' "${NEW_CONFIG}" # Modify get_simulated_taus
-sed -i 's/poisson: XXXX/poisson: false/' "${NEW_CONFIG}" # Modify poisson
-sed -i 's/noise_sigma: XXXX/noise_sigma: 0.01/' "${NEW_CONFIG}" # Modify noise_sigma
-sed -i 's/noise_tau: XXXX/noise_tau: 0.3/' "${NEW_CONFIG}" # Modify noise_tau
 sed -i 's/noise: XXXX/noise: 0.01/' "${NEW_CONFIG}" # Modify noise
+
+sed -i 's/low_pass_add: XXXX/low_pass_add: true/' "${NEW_CONFIG}" # Modify low_pass_add
+sed -i 's/noise_sigma: XXXX/noise_sigma: 0.05/' "${NEW_CONFIG}" # Modify noise_sigma
+sed -i 's/noise_tau: XXXX/noise_tau: 0.3/' "${NEW_CONFIG}" # Modify noise_tau
+
 
 # Debug: Print paths
 echo "Base directory: ${BASE_DIR}"

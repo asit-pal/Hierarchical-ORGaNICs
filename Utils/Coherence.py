@@ -9,7 +9,7 @@ import os
 from Utils.matrix_spectrum import noise_power_spectrum
 
 
-def Calculate_coherence(model, i, j, fb_gain, input_gain_beta1, input_gain_beta4, delta_tau, noise, poisson, get_simulated_taus, low_pass_add, noise_sigma, noise_tau, contrast_vals, method, gamma_vals, min_freq=1, max_freq=5e2, n_freq_mat=100, t_span=[0, 6]):
+def Calculate_coherence(model, i, j, fb_gain, input_gain_beta1, input_gain_beta4, delta_tau, noise,  low_pass_add, noise_sigma, noise_tau, contrast_vals, method, gamma_vals, min_freq=1, max_freq=5e2, n_freq_mat=100, t_span=[0, 6]):
     """
     Calculate coherence for all combinations of gamma and contrast values.
     Saves all data in a single file.
@@ -40,7 +40,7 @@ def Calculate_coherence(model, i, j, fb_gain, input_gain_beta1, input_gain_beta4
             J = torch.tensor(J, dtype=torch.float32)
 
             # Create L matrix
-            L = create_L_matrix(updated_model, ss, delta_tau, noise, poisson=poisson, get_simulated_taus=get_simulated_taus)
+            L = create_L_matrix(updated_model, ss, delta_tau, noise)
 
             # Calculate coherence
             mat_model = matrix_solution(J, L, S, noise_sigma, noise_tau, low_pass_add=low_pass_add)
@@ -55,7 +55,7 @@ def Calculate_coherence(model, i, j, fb_gain, input_gain_beta1, input_gain_beta4
 
     return coherence_data
 
-def Calculate_power_spectra(model, i, fb_gain, input_gain_beta1, input_gain_beta4, delta_tau, noise, poisson,get_simulated_taus,low_pass_add, noise_sigma, noise_tau, contrast_vals, method, gamma_vals, min_freq=0.1, max_freq=200, n_freq_mat=500, t_span=[0, 6]):
+def Calculate_power_spectra(model, i, fb_gain, input_gain_beta1, input_gain_beta4, delta_tau, noise, low_pass_add, noise_sigma, noise_tau, contrast_vals, method, gamma_vals, min_freq=0.1, max_freq=200, n_freq_mat=500, t_span=[0, 6]):
     """
     Calculate power spectra for all combinations of gamma and contrast values.
     Saves all data in a single file.
@@ -85,7 +85,7 @@ def Calculate_power_spectra(model, i, fb_gain, input_gain_beta1, input_gain_beta
             J, ss = updated_model.get_Jacobian(contrast, initial_conditions, method, t_span)
             J = torch.tensor(J, dtype=torch.float32)
             # Create L matrix
-            L = create_L_matrix(updated_model, ss, delta_tau, noise, poisson=poisson, get_simulated_taus=get_simulated_taus )
+            L = create_L_matrix(updated_model, ss, delta_tau, noise )
 
             # Calculate coherence
             mat_model = matrix_solution(J, L, S, noise_sigma, noise_tau, low_pass_add=low_pass_add)
@@ -105,7 +105,7 @@ def Calculate_power_spectra(model, i, fb_gain, input_gain_beta1, input_gain_beta
 
     return power_data
 
-def create_L_matrix(model, ss, delta_tau, noise,  poisson, get_simulated_taus=None):
+def create_L_matrix(model, ss, delta_tau, noise):
     N = model.params['N']
         
     params = model.params
@@ -113,36 +113,21 @@ def create_L_matrix(model, ss, delta_tau, noise,  poisson, get_simulated_taus=No
     if model.simulate_firing_rates:
         _, y1Plus, _, y4Plus, u1, u1Plus, u4, u4Plus, p1, p1Plus, p4, p4Plus, s1, s1Plus, s4, s4Plus = [
             ss[i*N:(i+1)*N] for i in range(model.jacobian_dimension)]
-        
-        if get_simulated_taus:
-            # Get effective taus from simulation
-            tau_eff = get_effective_timescales(model=model,ss=ss,plot=False,decay_time=0.75)  # Using contrast=0 since we're at steady state
-            
-            # Map the tau_eff indices to the corresponding variables
-            y1Plus_var = calculate_noise_variance(noise, y1Plus, delta_tau, tau_eff[0], poisson=poisson)
-            y4Plus_var = calculate_noise_variance(noise, y4Plus, delta_tau, tau_eff[1], poisson=poisson)
-            u1Plus_var = calculate_noise_variance(noise, u1Plus, delta_tau, tau_eff[2], poisson=poisson)
-            u4Plus_var = calculate_noise_variance(noise, u4Plus, delta_tau, tau_eff[3], poisson=poisson)
-            p1Plus_var = calculate_noise_variance(noise, p1Plus, delta_tau, tau_eff[4], poisson=poisson)
-            p4Plus_var = calculate_noise_variance(noise, p4Plus, delta_tau, tau_eff[5], poisson=poisson)
-            s1Plus_var = calculate_noise_variance(noise, s1Plus, delta_tau, tau_eff[6], poisson=poisson)
-            s4Plus_var = calculate_noise_variance(noise, s4Plus, delta_tau, tau_eff[7], poisson=poisson)
-        else:
-            # Use analytical effective taus (original method)
-            y1Plus_var = calculate_noise_variance(noise, y1Plus, delta_tau, 
-                calculate_effective_tau_y(params['tauY1'], p1Plus), poisson=poisson)
-            y4Plus_var = calculate_noise_variance(noise, y4Plus, delta_tau, 
-                calculate_effective_tau_y(params['tauY4'], p4Plus), poisson=poisson)
-            u1Plus_var = calculate_noise_variance(noise, u1Plus, delta_tau, 
-                calculate_effective_tau_u(params['tauU1'], params['b1'], u1, params['sigma1']), poisson=poisson)
-            u4Plus_var = calculate_noise_variance(noise, u4Plus, delta_tau, 
-                calculate_effective_tau_u(params['tauU4'], params['b4'], u4, params['sigma4']), poisson=poisson)
-            p1Plus_var = calculate_noise_variance(noise, p1Plus, delta_tau, 
-                calculate_effective_tau_p(params['tauP1'], u1Plus), poisson=poisson)
-            p4Plus_var = calculate_noise_variance(noise, p4Plus, delta_tau, 
-                calculate_effective_tau_p(params['tauP4'], u4Plus), poisson=poisson)
-            s1Plus_var = calculate_noise_variance(noise, s1Plus, delta_tau, params['tauS1'], poisson=poisson)
-            s4Plus_var = calculate_noise_variance(noise, s4Plus, delta_tau, params['tauS4'], poisson=poisson)
+        # Use analytical effective taus (original method)
+        y1Plus_var = calculate_noise_variance(noise, y1Plus, delta_tau, 
+            calculate_effective_tau_y(params['tauY1'], p1Plus))
+        y4Plus_var = calculate_noise_variance(noise, y4Plus, delta_tau, 
+            calculate_effective_tau_y(params['tauY4'], p4Plus))
+        u1Plus_var = calculate_noise_variance(noise, u1Plus, delta_tau, 
+            calculate_effective_tau_u(params['tauU1'], params['b1'], u1, params['sigma1']))
+        u4Plus_var = calculate_noise_variance(noise, u4Plus, delta_tau, 
+            calculate_effective_tau_u(params['tauU4'], params['b4'], u4, params['sigma4']))
+        p1Plus_var = calculate_noise_variance(noise, p1Plus, delta_tau, 
+            calculate_effective_tau_p(params['tauP1'], u1Plus))
+        p4Plus_var = calculate_noise_variance(noise, p4Plus, delta_tau, 
+            calculate_effective_tau_p(params['tauP4'], u4Plus))
+        s1Plus_var = calculate_noise_variance(noise, s1Plus, delta_tau, params['tauS1'])
+        s4Plus_var = calculate_noise_variance(noise, s4Plus, delta_tau, params['tauS4'])
         noise_vec = np.ones(N) * noise
         var_list = np.concatenate([
             noise_vec, y1Plus_var, noise_vec, y4Plus_var, 
@@ -170,14 +155,11 @@ def create_L_matrix(model, ss, delta_tau, noise,  poisson, get_simulated_taus=No
 #     # print(f"inside_sqrt : {inside_sqrt}")
 #     # print(ss_firing_rate[18],ratio[18])
 #     return  noise * np.sqrt( inside_sqrt)
-def calculate_noise_variance(noise, ss_firing_rate, delta_tau, effective_tau,poisson=False):
-    if poisson:
-        return noise * np.sqrt(ss_firing_rate)
-    else:
-        ratio = delta_tau / effective_tau
-        exp_term = np.exp(ratio) - 1
-        inside_sqrt = (ss_firing_rate ) * (1 + 2 / exp_term) 
-        return noise * np.sqrt(np.maximum(0, inside_sqrt))
+def calculate_noise_variance(noise, ss_firing_rate, delta_tau, effective_tau):
+    ratio = delta_tau / effective_tau
+    exp_term = np.exp(ratio) - 1
+    inside_sqrt = (ss_firing_rate ) * (1 + 2 / exp_term) 
+    return noise * np.sqrt(np.maximum(0, inside_sqrt))
 
 def calculate_effective_tau_y(tauY, a_ss):
     # Increase effective tau with contrast

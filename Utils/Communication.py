@@ -252,7 +252,7 @@ def Calculate_Pred_perf_Dim(model,gamma_vals,contrast_vals,fb_gain,input_gain_be
             # Create S and L matrices
             S = create_S_matrix(updated_model)
             D = S**2
-            L = create_L_matrix(updated_model, ss, delta_tau, noise,poisson=None,get_simulated_taus=None)
+            L = create_L_matrix(updated_model, ss, delta_tau, noise)
 
             # Compute correlation matrices
             Py = correlation(J, L, D, com_params['bw_y1_y4'])
