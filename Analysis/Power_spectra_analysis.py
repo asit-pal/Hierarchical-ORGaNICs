@@ -60,8 +60,6 @@ def main(config_file):
             input_gain_beta4=False,
             delta_tau=config['noise_params']['delta_tau'] * Ring_Model.params['tau'],
             noise=config['noise_params']['noise'],
-            poisson=config['noise_params']['poisson'],
-            get_simulated_taus=config['noise_params']['get_simulated_taus'],
             low_pass_add=config['noise_params']['low_pass_add'],
             noise_sigma=config['noise_params']['noise_sigma'],
             noise_tau=config['noise_params']['noise_tau'],
