@@ -1,4 +1,5 @@
-#!/bin/bash 
+#!/bin/bash
+# vim: syntax=bash
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=8
@@ -15,15 +16,15 @@ SOURCE_CONFIG="${BASE_DIR}/configs/config.yaml" # Source config file
 
 # Find the next available config number
 n=1
-while [ -d "${BASE_DIR}/Results/config_${n}" ]; do # Check if results directory exists
+while [ -d "${BASE_DIR}/Results_2/config_${n}" ]; do # Check if results directory exists
     ((n++))
 done
 
 # specify the config number
-# n=191 #Change this to specify the config number (for plotting)
+# n=122 #Change this to specify the config number (for plotting)
 
 # Create new results directory structure
-RESULTS_DIR="${BASE_DIR}/Results/config_${n}"
+RESULTS_DIR="${BASE_DIR}/Results_2/config_${n}"
 mkdir -p "${RESULTS_DIR}/Data" # Create data directory
 mkdir -p "${RESULTS_DIR}/Plots" # Create plots directory
 
@@ -32,8 +33,8 @@ NEW_CONFIG="${RESULTS_DIR}/config_${n}.yaml"
 cp "${SOURCE_CONFIG}" "${NEW_CONFIG}" # Copy source config to new config
 
 # Modify only Power_spectra/Feedback_gain parameters in the copied config
-sed -i '/Power_spectra:/,/Input_gain_beta1:/ s/gamma_vals: XXXX/gamma_vals: [1.0]/' "${NEW_CONFIG}" # Modify gamma_vals
-sed -i '/Power_spectra:/,/Input_gain_beta1:/ s/c_vals: XXXX/c_vals: [0.032,0.064,0.125,0.25,0.5,1.0]/' "${NEW_CONFIG}" # Modify c_vals
+# sed -i '/Power_spectra:/,/Input_gain_beta1:/ s/gamma_vals: XXXX/gamma_vals: [1.0,0.75,0.5,0.25,0.0]/' "${NEW_CONFIG}" # Modify gamma_vals
+# sed -i '/Power_spectra:/,/Input_gain_beta1:/ s/c_vals: XXXX/c_vals: [1.0,0.5,0.25,0.125,0.064,0.032]/' "${NEW_CONFIG}" # Modify c_vals
 
 # # #Modify alpha1 and alpha4 in the copied config
 # sed -i '/model_params:/ s/alpha1: 10.0/alpha1: 0.0/' "${NEW_CONFIG}" # Modify alpha1
@@ -41,11 +42,14 @@ sed -i '/Power_spectra:/,/Input_gain_beta1:/ s/c_vals: XXXX/c_vals: [0.032,0.064
 
 # Modify noise parameters in the copied config
 sed -i 's/delta_tau: XXXX/delta_tau: 3.0/' "${NEW_CONFIG}" # Modify delta_tau
-sed -i 's/noise: XXXX/noise: 0.01/' "${NEW_CONFIG}" # Modify noise
+sed -i 's/noise_potential: XXXX/noise_potential: 0.01/' "${NEW_CONFIG}" # Modify noise
+sed -i 's/noise_firing_rate: XXXX/noise_firing_rate: 0.01/' "${NEW_CONFIG}" # Modify noise
+sed -i 's/GR_noise: XXXX/GR_noise: true/' "${NEW_CONFIG}" # Modify GR_noise
 
 sed -i 's/low_pass_add: XXXX/low_pass_add: true/' "${NEW_CONFIG}" # Modify low_pass_add
 sed -i 's/noise_sigma: XXXX/noise_sigma: 0.05/' "${NEW_CONFIG}" # Modify noise_sigma
-sed -i 's/noise_tau: XXXX/noise_tau: 0.3/' "${NEW_CONFIG}" # Modify noise_tau
+sed -i 's/noise_tau: XXXX/noise_tau: 0.30/' "${NEW_CONFIG}" # Modify noise_tau
+
 
 
 # Debug: Print paths
@@ -72,18 +76,31 @@ echo "Current directory: $(pwd)"
 echo "Config file: ${NEW_CONFIG}"
 echo "Config number: ${CONFIG_NUM}"
 
-
+######################### Power spectra analysis #########################
 # python ${BASE_DIR}/Analysis/Power_spectra_analysis.py "${NEW_CONFIG}"
 
 # python ${BASE_DIR}/Plotting/Plot_power_spectra_fixed_gamma.py "${RESULTS_DIR}"
 
 # python ${BASE_DIR}/Plotting/Plotting_power_spectra.py "${RESULTS_DIR}"
 
+
+######################### Coherence analysis #########################
+
 # python ${BASE_DIR}/Analysis/Coherence_analysis.py "${NEW_CONFIG}"
 
 # python ${BASE_DIR}/Plotting/Plotting_coherence.py "${RESULTS_DIR}"
 
+# python ${BASE_DIR}/Plotting/Plot_coherence_fixed_gamma.py "${RESULTS_DIR}"
+
+######################### Communication analysis #########################
+
 python ${BASE_DIR}/Analysis/Communication_analysis.py "${NEW_CONFIG}"
 
 python ${BASE_DIR}/Plotting/Plotting_communication_analysis.py "${RESULTS_DIR}"
+
+######################### Gain modulation analysis #########################
+
+# python ${BASE_DIR}/Analysis/Gain_modulation.py "${NEW_CONFIG}"
+
+# python ${BASE_DIR}/Plotting/Plotting_gain_modulation.py "${RESULTS_DIR}"
 EOF

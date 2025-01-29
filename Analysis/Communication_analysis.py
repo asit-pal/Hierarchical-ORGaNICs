@@ -38,7 +38,7 @@ def main(config_file):
         config=config,
         tau=1e-3,  # default value
         tauPlus=1e-3,
-        N=36       # default value
+        N=72       # default value
     )
     # Initialize model
     Ring_Model = RingModel(params, simulate_firing_rates=True)
@@ -60,9 +60,9 @@ def main(config_file):
     # Communication subspace parameters
     com_params = {'num_trials':250,
                 'tol':5e-2,
-                'V1_s':18,
-                'V1_t':18,
-                'V4_t':18,
+                'V1_s':36,
+                'V1_t':36,
+                'V4_t':36,
                 'N1_y_idx':N1_y,
                 'N4_y_idx':N4_y,
                 'bw_y1_y4':bw_y1_y4} # is it between potential or firing rates?
@@ -72,7 +72,7 @@ def main(config_file):
         gain_type = 'fb_gain'
         contrast_vals = config['Communication']['Feedback_gain']['c_vals']
         gamma_vals = config['Communication']['Feedback_gain']['gamma_vals']
-        Communication_data = Calculate_Pred_perf_Dim(
+        Communication_data, covariance_data = Calculate_Pred_perf_Dim(
             Ring_Model,
             gamma_vals,
             contrast_vals,
@@ -80,16 +80,15 @@ def main(config_file):
             input_gain_beta1=False,
             input_gain_beta4=False,
             delta_tau=config['noise_params']['delta_tau'] * Ring_Model.params['tau'],
-            noise=config['noise_params']['noise'],
+            noise_potential=config['noise_params']['noise_potential'],
+            noise_firing_rate=config['noise_params']['noise_firing_rate'],
+            GR_noise=config['noise_params']['GR_noise'],
             method='RK45',
-            low_pass_add=config['noise_params']['low_pass_add'],
-            noise_sigma=config['noise_params']['noise_sigma'],
-            noise_tau=config['noise_params']['noise_tau'],
             com_params=com_params,
             t_span=config['Communication']['Feedback_gain']['t_span']
         )
         save_communication_data(Communication_data, data_dir, gain_type)
-        
+        save_covariance_data(covariance_data, data_dir, gain_type)
     if config['Communication']['Input_gain_beta1']['enabled']:
         gain_type = 'input_beta1_gain'
         contrast_vals = config['Communication']['Input_gain_beta1']['c_vals']
@@ -101,10 +100,12 @@ def main(config_file):
             fb_gain=False,
             input_gain_beta1=True,
             input_gain_beta4=False,
+            delta_tau=config['noise_params']['delta_tau'] * Ring_Model.params['tau'],
+            noise_potential=config['noise_params']['noise_potential'],
+            noise_firing_rate=config['noise_params']['noise_firing_rate'],
+            GR_noise=config['noise_params']['GR_noise'],
             method='RK45',
             com_params=com_params,
-            delta_tau=config['noise_params']['delta_tau'] * Ring_Model.params['tau'],
-            noise=config['noise_params']['noise'],
             t_span=config['Communication']['Input_gain_beta1']['t_span']
         )
 
@@ -126,6 +127,19 @@ def save_communication_data(Communication_data, data_dir, gain_type):
     filename = f'Communication_data_{gain_type}_all.npy'
     np.save(os.path.join(data_dir, filename), Communication_data)
     print(f"Saved all communication data to: {os.path.join(data_dir, filename)}")
+    
+def save_covariance_data(covariance_data, data_dir, gain_type):
+    """
+    Save covariance data to a single file.
+    
+    Args:
+        covariance_data (dict): Dictionary containing covariance data
+        data_dir (str): Directory to save the data
+        gain_type (str): Type of gain ('fb', 'beta1', or 'beta4')
+    """
+    filename = f'Covariance_data_{gain_type}_all.npy'
+    np.save(os.path.join(data_dir, filename), covariance_data)
+    print(f"Saved all covariance data to: {os.path.join(data_dir, filename)}")
     
 if __name__ == "__main__":
     if len(sys.argv) != 2:

@@ -48,6 +48,7 @@ def main(config_file):
     N = params['N']
     i = int(N / 2)  # y1 index
     j = int(N / 2) + 2*int(N) if Ring_Model.simulate_firing_rates else int(N / 2) + int(N)  # y4 index
+    j = int(N/2) + 1 # y1 index V1-V1 coherence
 
     # Run analyses based on config
     if config['Coherence']['Feedback_gain']['enabled']:
@@ -59,14 +60,16 @@ def main(config_file):
             input_gain_beta1=False,
             input_gain_beta4=False,
             delta_tau=config['noise_params']['delta_tau'] * Ring_Model.params['tau'],
-            noise=config['noise_params']['noise'],
+            noise_potential=config['noise_params']['noise_potential'],
+            noise_firing_rate=config['noise_params']['noise_firing_rate'],
+            GR_noise=config['noise_params']['GR_noise'],
             low_pass_add=config['noise_params']['low_pass_add'],
             noise_sigma=config['noise_params']['noise_sigma'],
             noise_tau=config['noise_params']['noise_tau'],
             contrast_vals=fb_config['c_vals'],
             method='RK45',
             gamma_vals=fb_config['gamma_vals'],
-            min_freq=0.1,
+            min_freq=1,
             max_freq=200,
             n_freq_mat=500,
             t_span=fb_config['t_span']
@@ -83,14 +86,16 @@ def main(config_file):
             input_gain_beta1=True,
             input_gain_beta4=False,
             delta_tau=config['noise_params']['delta_tau'] * Ring_Model.params['tau'],
-            noise=config['noise_params']['noise'],
+            noise_potential=config['noise_params']['noise_potential'],
+            noise_firing_rate=config['noise_params']['noise_firing_rate'],
+            GR_noise=config['noise_params']['GR_noise'],
             low_pass_add=config['noise_params']['low_pass_add'],
             noise_sigma=config['noise_params']['noise_sigma'],
             noise_tau=config['noise_params']['noise_tau'],
             contrast_vals=beta1_config['c_vals'],
             method='RK45',
             beta1_vals=beta1_config['beta1_vals'],
-            min_freq=0.1,
+            min_freq=1,
             max_freq=200,
             n_freq_mat=500,
             t_span=beta1_config['t_span']
