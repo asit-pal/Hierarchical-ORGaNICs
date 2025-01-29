@@ -1,11 +1,10 @@
-
 ## The model
 from scipy.integrate import solve_ivp
 # from Utils.weight_matrix import *
 import autograd.numpy as np
 from autograd import jacobian
 import copy
-import tqdm
+from tqdm import tqdm
 
 
 def relu(x,rectify):
@@ -226,6 +225,9 @@ class RingModel:
         indices = list(range(start_range1,end_range1))
         J = np.delete(J, indices, axis=0)
         J = np.delete(J, indices, axis=1)
+        # check if the eigenvalues of J are less than 0
+        if np.any(np.linalg.eigvals(J) > 0):
+            raise ValueError('The eigenvalues of the Jacobian matrix are not less than 0')
         self.J = J
         return J,ss
     
@@ -302,89 +304,85 @@ class RingModel:
     
     
 # Utils Functions
-def get_steady_states(model,c, initial_conditions, t_span=[0, 5], method='RK45', Jacobian=True):
-    ''' This function computes the steady state of the model given the input contrast c and initial conditions.
-    Inputs:
-    model: RingModel object
-    params: dictionary of parameters
-    c: input contrast
-    initial_conditions: initial conditions of the model
-    t_span: time span for the integration
-    method: integration method
-    Jacobian: Boolean
-    Output:
-    steady_state: steady state of the model 
-    '''
+def get_steady_states(model, contrast, initial_conditions, t_span=[0, 5], method='RK45', Jacobian=True):
+    """
+    Compute steady state of the model for given contrast and initial conditions.
+    
+    Args:
+        model: RingModel object
+        contrast: Input contrast value
+        initial_conditions: Initial conditions of the model
+        t_span: Time span for integration [start, end]
+        method: Integration method
+        Jacobian: Whether to return full state (True) or center neuron only (False)
+    
+    Returns:
+        steady_state: Steady state of the model
+    """
     params = model.params
     N = params['N']
     M = params['M']
+    
+    # Create input vector
     x = np.zeros((M))
-    x[model.target_angle] = c
+    x[model.target_angle] = contrast
+    
+    # Setup integration time points
     t_eval = np.arange(t_span[0], t_span[1], params['dt'])
     
+    # Solve system
+    sol = solve_ivp(model.dynm_func, t_span, initial_conditions, 
+                    method=method, t_eval=t_eval, 
+                    args=(x,), vectorized=True, 
+                    rtol=1e-10, atol=1e-10)
     
-    sol = solve_ivp(model.dynm_func, t_span, initial_conditions, method=method, t_eval=t_eval, 
-                    args=(x,), vectorized=True, rtol=1e-10, atol=1e-10)
-    
+    # Reshape solution
     soln = sol.y.reshape(model.num_var, N, -1)
+    
+    # Check convergence
     tol = 1e-6
     steady_state_reached = np.all(np.abs(soln[:,:,-1] - soln[:,:,-2]) < tol)
     
     if not steady_state_reached:
         raise ValueError('Solution did not converge to a steady state within the given time span')
     
-    steady_state = [soln[i,:,-1] for i in range(model.num_var)]
-    
+    # Return either full state or center neuron only
     if Jacobian:
-        return steady_state
+        return [soln[i,:,-1] for i in range(model.num_var)]
     else:
         return [soln[i,int(N/2),-1] for i in range(model.num_var)]
 
 
-def Contrast_response_curve(model,params,c_vals,gamma_vals,method, t_span,initial_conditions,g,fb_gain,input_gain_beta1,input_gain_beta4):
-    '''
-    Function to compute the contrast response curve of the model.
-    Inputs:
-    model: RingModel object
-    params: dictionary of parameters
-    c_vals: array-like
-        The contrast values.
-    gamma_vals: array-like
-        The gamma1/beta1/beta4 values.
-    method: string
-        The method to use for the integration.
-    t_span: array-like
-        The time span for the integration.
-    initial_conditions: array-like
-        The initial conditions of the system.
-    fb_gain: bool
-        Whether to vary the feedback gain.
-    input_gain_beta1: bool
-        Whether to vary the input gain beta1.
-    input_gain_beta4: bool
-        Whether to vary the input gain beta4.
-    Returns:
-    steady_states: dictionary
-        The steady states of the system
-        '''
-
+def Contrast_response_curve(model,fb_gain,input_gain_beta1,input_gain_beta4, c_vals, gamma_vals, method, t_span):
+    """
+    Calculate contrast response curve for all combinations of gamma and contrast values.
+    """
+    params = model.params
+    initial_conditions = np.ones((model.num_var * params['N'])) * 0.01
     steady_states = {}
-    for gamma in tqdm(gamma_vals):
-        updated_model = copy.deepcopy(model)
-        if fb_gain:
-            updated_model.params['gamma1'] = gamma
-        elif input_gain_beta1:
-            updated_model.params['beta1'] = gamma
-        elif input_gain_beta4:
-            updated_model.params['beta4'] = gamma
 
-        # Create a copy of the model with updated parameters
-        # updated_model = copy.deepcopy(model)
-        # updated_model.params = updated_params 
-        updated_model.params['g1'] = g
-        for c in c_vals:
-            steady_state = get_steady_states(updated_model,c,initial_conditions, t_span,method, Jacobian=False)
-            steady_states[(gamma, c)] = steady_state
+    for contrast in tqdm(c_vals, desc='Contrast'):
+        for gamma in tqdm(gamma_vals, desc=f'Gamma (c={contrast})', leave=False):
+            # Create a copy of the model with updated parameters
+            updated_params = copy.deepcopy(params)
+            
+            # Update parameters based on gain type
+            if fb_gain:
+                updated_params['gamma1'] = gamma
+            if input_gain_beta1:
+                updated_params['beta1'] = gamma
+            if input_gain_beta4:
+                updated_params['beta4'] = gamma
+                
+            updated_model = copy.deepcopy(model)
+            updated_model.params = updated_params
+            
+            # Get steady states
+            steady_state = get_steady_states(updated_model, contrast, initial_conditions, t_span, method, Jacobian=False)
+            
+            # Store data with (gamma, contrast) tuple as key
+            key = (gamma, contrast)
+            steady_states[key] = steady_state
 
     return steady_states
 

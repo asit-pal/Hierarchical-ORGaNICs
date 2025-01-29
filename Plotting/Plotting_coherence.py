@@ -5,13 +5,12 @@ import sys
 import yaml
 from Plotting import plot_coherence_data
 
-def plot_feedback_gain_results(results_dir,gain_type):
+def plot_feedback_gain_results(results_dir):
     """
     Plot coherence for feedback gain analysis.
     
     Args:
         results_dir (str): Path to the results directory containing config and data
-        gain_type (str): Type of gain ('fb_gain' or 'input_gain_beta1' or 'input_gain_beta4')
     """
     # Get the data directory path
     data_dir = os.path.join(results_dir, 'Data')
@@ -36,44 +35,74 @@ def plot_feedback_gain_results(results_dir,gain_type):
         print(f"Error loading config file: {e}")
         sys.exit(1)
     
-    # Get parameters from config
-    fb_config = config['Coherence']['Feedback_gain']
-    gamma_vals = fb_config['gamma_vals']
-    c_vals = fb_config['c_vals']
-    
-    print(f"Processing data for contrasts: {c_vals}")
-    print(f"With gamma values: {gamma_vals}")
-    
-    # Load coherence data from the single file
-    coherence_file = os.path.join(data_dir, f'coherence_{gain_type}_all.npy')
-    if not os.path.exists(coherence_file):
-        print(f"Error: Coherence data file not found at {coherence_file}")
-        sys.exit(1)
-        
-    print(f"Loading coherence data from: {coherence_file}")
-    coherence_data = np.load(coherence_file, allow_pickle=True).item()
-    
     # Create plots directory if it doesn't exist
-    plots_dir = os.path.join(results_dir, 'Plots','Coherence')
-    if not os.path.exists(plots_dir):
-        os.makedirs(plots_dir)
+    plots_dir = os.path.join(results_dir, 'Plots', 'Coherence')
+    os.makedirs(plots_dir, exist_ok=True)
     
-    # Create plots for each contrast value
-    for contrast in c_vals:
-        print(f"Creating plot for contrast = {contrast}")
+    # Plot for each enabled gain type
+    if config['Coherence']['Feedback_gain']['enabled']:
+        gain_type = 'fb_gain'
+        gamma_vals = config['Coherence']['Feedback_gain']['gamma_vals']
+        c_vals = config['Coherence']['Feedback_gain']['c_vals']
         
-        # Create plots
-        fig, ax = plot_coherence_data(
-            coherence_data,
-            gamma_vals,
-            contrast,
-            fb_gain=True,
-            input_gain_beta1=False,
-            input_gain_beta4=False
-        )
+        print(f"Processing feedback gain data for contrasts: {c_vals}")
+        print(f"With gamma values: {gamma_vals}")
         
-        # Save the figure
-        save_coherence_plots(plots_dir, fig, contrast, gain_type)
+        coherence_file = os.path.join(data_dir, f'coherence_{gain_type}_all.npy')
+        if os.path.exists(coherence_file):
+            print(f"Loading feedback gain coherence data from: {coherence_file}")
+            coherence_data = np.load(coherence_file, allow_pickle=True).item()
+            
+            # Create plots for each contrast value
+            for contrast in c_vals:
+                print(f"Creating feedback gain plot for contrast = {contrast}")
+                
+                # Create plots
+                fig, ax = plot_coherence_data(
+                    coherence_data,
+                    gamma_vals,
+                    contrast,
+                    fb_gain=True,
+                    input_gain_beta1=False,
+                    input_gain_beta4=False
+                )
+                
+                # Save the figure
+                save_coherence_plots(plots_dir, fig, contrast, gain_type)
+        else:
+            print(f"Warning: Coherence data file not found at {coherence_file}")
+    
+    if config['Coherence']['Input_gain_beta1']['enabled']:
+        gain_type = 'input_gain_beta1'
+        beta1_vals = config['Coherence']['Input_gain_beta1']['beta1_vals']
+        c_vals = config['Coherence']['Input_gain_beta1']['c_vals']
+        
+        print(f"Processing beta1 gain data for contrasts: {c_vals}")
+        print(f"With beta1 values: {beta1_vals}")
+        
+        coherence_file = os.path.join(data_dir, f'coherence_{gain_type}_all.npy')
+        if os.path.exists(coherence_file):
+            print(f"Loading beta1 gain coherence data from: {coherence_file}")
+            coherence_data = np.load(coherence_file, allow_pickle=True).item()
+            
+            # Create plots for each contrast value
+            for contrast in c_vals:
+                print(f"Creating beta1 gain plot for contrast = {contrast}")
+                
+                # Create plots
+                fig, ax = plot_coherence_data(
+                    coherence_data,
+                    beta1_vals,
+                    contrast,
+                    fb_gain=False,
+                    input_gain_beta1=True,
+                    input_gain_beta4=False
+                )
+                
+                # Save the figure
+                save_coherence_plots(plots_dir, fig, contrast, gain_type)
+        else:
+            print(f"Warning: Coherence data file not found at {coherence_file}")
 
 def save_coherence_plots(plots_dir, fig, contrast, gain_type):
     """
@@ -91,4 +120,4 @@ if __name__ == "__main__":
     
     results_dir = sys.argv[1]
     print(f"Processing results from: {results_dir}")
-    plot_feedback_gain_results(results_dir,'fb_gain') # change this for input gain
+    plot_feedback_gain_results(results_dir)

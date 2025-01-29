@@ -9,7 +9,7 @@ import os
 from Utils.matrix_spectrum import noise_power_spectrum
 
 
-def Calculate_coherence(model, i, j, fb_gain, input_gain_beta1, input_gain_beta4, delta_tau, noise,  low_pass_add, noise_sigma, noise_tau, contrast_vals, method, gamma_vals, min_freq=1, max_freq=5e2, n_freq_mat=100, t_span=[0, 6]):
+def Calculate_coherence(model, i, j, fb_gain, input_gain_beta1, input_gain_beta4, delta_tau, noise_potential, noise_firing_rate, GR_noise, low_pass_add, noise_sigma, noise_tau, contrast_vals, method, gamma_vals, min_freq=1, max_freq=5e2, n_freq_mat=100, t_span=[0, 6]):
     """
     Calculate coherence for all combinations of gamma and contrast values.
     Saves all data in a single file.
@@ -40,7 +40,7 @@ def Calculate_coherence(model, i, j, fb_gain, input_gain_beta1, input_gain_beta4
             J = torch.tensor(J, dtype=torch.float32)
 
             # Create L matrix
-            L = create_L_matrix(updated_model, ss, delta_tau, noise)
+            L = create_L_matrix(updated_model, ss, delta_tau, noise_potential, noise_firing_rate, GR_noise)
 
             # Calculate coherence
             mat_model = matrix_solution(J, L, S, noise_sigma, noise_tau, low_pass_add=low_pass_add)
@@ -55,7 +55,7 @@ def Calculate_coherence(model, i, j, fb_gain, input_gain_beta1, input_gain_beta4
 
     return coherence_data
 
-def Calculate_power_spectra(model, i, fb_gain, input_gain_beta1, input_gain_beta4, delta_tau, noise, low_pass_add, noise_sigma, noise_tau, contrast_vals, method, gamma_vals, min_freq=0.1, max_freq=200, n_freq_mat=500, t_span=[0, 6]):
+def Calculate_power_spectra(model, i, fb_gain, input_gain_beta1, input_gain_beta4, delta_tau, noise_potential, noise_firing_rate, GR_noise, low_pass_add, noise_sigma, noise_tau, contrast_vals, method, gamma_vals, min_freq=0.1, max_freq=200, n_freq_mat=500, t_span=[0, 6]):
     """
     Calculate power spectra for all combinations of gamma and contrast values.
     Saves all data in a single file.
@@ -85,7 +85,7 @@ def Calculate_power_spectra(model, i, fb_gain, input_gain_beta1, input_gain_beta
             J, ss = updated_model.get_Jacobian(contrast, initial_conditions, method, t_span)
             J = torch.tensor(J, dtype=torch.float32)
             # Create L matrix
-            L = create_L_matrix(updated_model, ss, delta_tau, noise )
+            L = create_L_matrix(updated_model, ss, delta_tau, noise_potential, noise_firing_rate, GR_noise)
 
             # Calculate coherence
             mat_model = matrix_solution(J, L, S, noise_sigma, noise_tau, low_pass_add=low_pass_add)
@@ -105,40 +105,60 @@ def Calculate_power_spectra(model, i, fb_gain, input_gain_beta1, input_gain_beta
 
     return power_data
 
-def create_L_matrix(model, ss, delta_tau, noise):
+def create_L_matrix(model, ss, delta_tau, noise_potential,noise_firing_rate,GR_noise):
+    '''
+    Create L matrix for the model
+    noise_potential: noise in the potential variables
+    noise_firing_rate: noise in the firing rate variables
+    GR_noise: Whether to use Gaussian rectified noise for the firing rate variables
+    '''
     N = model.params['N']
         
     params = model.params
     
     if model.simulate_firing_rates:
-        _, y1Plus, _, y4Plus, u1, u1Plus, u4, u4Plus, p1, p1Plus, p4, p4Plus, s1, s1Plus, s4, s4Plus = [
-            ss[i*N:(i+1)*N] for i in range(model.jacobian_dimension)]
-        # Use analytical effective taus (original method)
-        y1Plus_var = calculate_noise_variance(noise, y1Plus, delta_tau, 
-            calculate_effective_tau_y(params['tauY1'], p1Plus))
-        y4Plus_var = calculate_noise_variance(noise, y4Plus, delta_tau, 
-            calculate_effective_tau_y(params['tauY4'], p4Plus))
-        u1Plus_var = calculate_noise_variance(noise, u1Plus, delta_tau, 
-            calculate_effective_tau_u(params['tauU1'], params['b1'], u1, params['sigma1']))
-        u4Plus_var = calculate_noise_variance(noise, u4Plus, delta_tau, 
-            calculate_effective_tau_u(params['tauU4'], params['b4'], u4, params['sigma4']))
-        p1Plus_var = calculate_noise_variance(noise, p1Plus, delta_tau, 
-            calculate_effective_tau_p(params['tauP1'], u1Plus))
-        p4Plus_var = calculate_noise_variance(noise, p4Plus, delta_tau, 
-            calculate_effective_tau_p(params['tauP4'], u4Plus))
-        s1Plus_var = calculate_noise_variance(noise, s1Plus, delta_tau, params['tauS1'])
-        s4Plus_var = calculate_noise_variance(noise, s4Plus, delta_tau, params['tauS4'])
-        noise_vec = np.ones(N) * noise
-        var_list = np.concatenate([
-            noise_vec, y1Plus_var, noise_vec, y4Plus_var, 
-            noise_vec, u1Plus_var, noise_vec, u4Plus_var, 
-            noise_vec, p1Plus_var, noise_vec, p4Plus_var, 
-            noise_vec, s1Plus_var, noise_vec, s4Plus_var,
-            
-        ])
+        if GR_noise:    
+            _, y1Plus, _, y4Plus, u1, u1Plus, u4, u4Plus, p1, p1Plus, p4, p4Plus, s1, s1Plus, s4, s4Plus = [
+                ss[i*N:(i+1)*N] for i in range(model.jacobian_dimension)]
+            # Use analytical effective taus (original method)
+            y1Plus_var = calculate_noise_variance(noise_firing_rate, y1Plus, delta_tau, 
+                calculate_effective_tau_y(params['tauY1'], p1Plus))
+            y4Plus_var = calculate_noise_variance(noise_firing_rate, y4Plus, delta_tau, 
+                calculate_effective_tau_y(params['tauY4'], p4Plus))
+            u1Plus_var = calculate_noise_variance(noise_firing_rate, u1Plus, delta_tau, 
+                calculate_effective_tau_u(params['tauU1'], params['b1'], u1, params['sigma1']))
+            u4Plus_var = calculate_noise_variance(noise_firing_rate, u4Plus, delta_tau, 
+                calculate_effective_tau_u(params['tauU4'], params['b4'], u4, params['sigma4']))
+            p1Plus_var = calculate_noise_variance(noise_firing_rate, p1Plus, delta_tau, 
+                calculate_effective_tau_p(params['tauP1'], u1Plus))
+            p4Plus_var = calculate_noise_variance(noise_firing_rate, p4Plus, delta_tau, 
+                calculate_effective_tau_p(params['tauP4'], u4Plus))
+            s1Plus_var = calculate_noise_variance(noise_firing_rate, s1Plus, delta_tau, params['tauS1'])
+            s4Plus_var = calculate_noise_variance(noise_firing_rate, s4Plus, delta_tau, params['tauS4'])
+            noise_vec = np.ones(N) * noise_potential
+            var_list = np.concatenate([
+                noise_vec, y1Plus_var, noise_vec, y4Plus_var, 
+                noise_vec, u1Plus_var, noise_vec, u4Plus_var, 
+                noise_vec, p1Plus_var, noise_vec, p4Plus_var, 
+                noise_vec, s1Plus_var, noise_vec, s4Plus_var,
+                
+            ])
+        else:
+            noise_vec_potential = np.ones(N) * noise_potential
+            noise_vec_firing_rate = np.ones(N) * noise_firing_rate
+            var_list = np.concatenate([
+                noise_vec_potential, noise_vec_firing_rate,
+                noise_vec_potential, noise_vec_firing_rate,
+                noise_vec_potential, noise_vec_firing_rate,
+                noise_vec_potential, noise_vec_firing_rate,
+                noise_vec_potential, noise_vec_firing_rate,
+                noise_vec_potential, noise_vec_firing_rate,
+                noise_vec_potential, noise_vec_firing_rate,
+                noise_vec_potential, noise_vec_firing_rate,
+            ])
     else:
         jacobian_dimension = int(N * model.jacobian_dimension)
-        var_list = np.ones(jacobian_dimension) * noise
+        var_list = np.ones(jacobian_dimension) * noise_potential
     
     L = np.diag(var_list)
     return torch.tensor(L, dtype=torch.float32)

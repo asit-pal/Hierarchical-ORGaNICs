@@ -53,7 +53,7 @@ def plot_fixed_gamma_power_spectra(results_dir):
         }
     
     # Create plots directory if it doesn't exist
-    plots_dir = os.path.join(results_dir, 'Plots')
+    plots_dir = os.path.join(results_dir, 'Plots', 'Power_spectra')
     if not os.path.exists(plots_dir):
         os.makedirs(plots_dir)
     

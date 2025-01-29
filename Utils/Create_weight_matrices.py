@@ -96,14 +96,17 @@ def setup_parameters(config, tau=1e-3, kernel=None, N=36, M=None, tauPlus=1*1e-3
     W11 = Recurrence_matrix(N, kernel)
     W11 = (W11.T + W11)/2.0 # making symmetric
     W11 = RescaleEigenvalues(W11) # rescaling eigenvalues to one
-    Wn1 = Norm_matrix(N, std_dev=N/2,gaussian_height=1) # Normalization pool within each layers
-    Wn2 = Norm_matrix(N, std_dev=N/2,gaussian_height=1) # Normalization pool within each layers
+    # Wn1 = Norm_matrix(N, std_dev=N/2,gaussian_height=1) # Normalization pool within each layers
+    # Wn2 = Norm_matrix(N, std_dev=N/2,gaussian_height=1) # Normalization pool within each layers
+    Wn1 = np.ones((N,N))
+    Wn2 = np.ones((N,N))
     # Wn1 = (Wn1 + Wn1.T)/2.0 # making symmetric
     # Wn2 = (Wn2 + Wn2.T)/2.0 # making symmetric
     W44 = W11 # currently setting same within area recurrent matrix
     # theta1 = np.arange(0, 2 * np.pi, 2 * np.pi / 36)
     # Wy1y2 = Wy1y1**2  # For sabilization by feedback plot
     W14 = W11 @ W11 # connectivity matrix 
+    # W14 = W11
     W41 = W14.T # Wy2y1 is transpose of Wy1y2
     W45 = W14
     
@@ -130,12 +133,12 @@ def setup_parameters(config, tau=1e-3, kernel=None, N=36, M=None, tauPlus=1*1e-3
         'tauBeta1': tau, 'tauBeta4': tau,
         'tauGamma1': tau, 'tauGamma4': tau,
         'tau': tau, 'tauPlus': tauPlus,
-        'sigma1': 0.1, 'sigma4': 0.1,
+        'sigma1': config['model_params']['sigma1'], 'sigma4': config['model_params']['sigma4'],
         'dt': tauPlus/3,
         'W11': W11, 'W44': W44,
-        'W14': W14, 'W41': W41, 'W45': W45,
+        'W14': W14*0.7, 'W41': W41*1.0, 'W45': W45,
         'Wn1': Wn1, 'Wn4': Wn2,
-        'Wzx': Wzx,
+        'Wzx': Wzx*0.7,
         # Load parameters from config
         'alpha1': config['model_params']['alpha1'],
         'alpha4': config['model_params']['alpha4'],

@@ -147,7 +147,10 @@ def performance(P1, P2, P3):
     W_opt = np.linalg.inv(P1) @ P3  # Optimal weight matrix (from OLS)
 
     # Step 2: Calculate the reference error (e_R) using the trace of P2
-    e_R = np.trace(P2)  # Reference error
+    # e_R =  np.trace(P2)  # Reference error
+    # e_R = np.abs(e_R)
+    e_R = np.linalg.norm(P2,'fro')
+    # e_R = np.trace(P2+P1)
 
     # Step 3: Calculate the predicted covariance of the target using W_opt
     predicted_cov = W_opt.T @ P1 @ W_opt
@@ -173,10 +176,19 @@ def performance(P1, P2, P3):
         W[i] = W_opt @ V_i @ V_i.T  # Reduced-rank weight matrix
 
         # Step 7: Calculate the error for the reduced-rank weight matrix
-        e[i] = np.trace(P2 + W[i].T @ P1 @ W[i] - 2 * W[i].T @ P3)
+        # e[i] = np.trace(P2 + W[i].T @ P1 @ W[i] - 2 * W[i].T @ P3)
+        predicted_cov_reduced = W[i].T @ P1 @ W[i]
+        error_matrix = P2 - predicted_cov_reduced
+        e[i] = np.linalg.norm(error_matrix,'fro')
+        # e[i] = np.trace(W[i].T @ P1 @ W[i])
+        # e[i] = np.abs(e[i])
 
     # Step 8: Calculate prediction performance as 1 - (e / e_R) (MSE/RMSE)
     pred_perf = 1 - (e / e_R)
+    
+    # pred_perf = 1- e/6
+    # pred_perf = e/e_R
+    # pred_perf = e_R/e -1
 
     return pred_perf, dims
 
@@ -224,12 +236,12 @@ def performance(P1, P2, P3):
 #     return pred_perf, dims
 
 
-def Calculate_Pred_perf_Dim(model,gamma_vals,contrast_vals,fb_gain,input_gain_beta1,input_gain_beta4,delta_tau,noise,method,low_pass_add,noise_sigma,noise_tau,com_params,t_span=[0,6]):
+def Calculate_Pred_perf_Dim(model,gamma_vals,contrast_vals,fb_gain,input_gain_beta1,input_gain_beta4,delta_tau,noise_potential,noise_firing_rate,GR_noise,method,com_params,t_span=[0,6]):
     N = model.params['N']
     params = model.params
     initial_conditions = np.ones((model.num_var * N)) * 0.01
     performance_data = {}
-    
+    covariance_data = {}
     for contrast in tqdm(contrast_vals):
         for gamma in tqdm(gamma_vals):
             updated_params = copy.deepcopy(params)
@@ -252,15 +264,12 @@ def Calculate_Pred_perf_Dim(model,gamma_vals,contrast_vals,fb_gain,input_gain_be
             # Create S and L matrices
             S = create_S_matrix(updated_model)
             D = S**2
-            L = create_L_matrix(updated_model, ss, delta_tau, noise)
+            L = create_L_matrix(updated_model, ss, delta_tau, noise_potential, noise_firing_rate, GR_noise)
 
             # Compute correlation matrices
             Py = correlation(J, L, D, com_params['bw_y1_y4'])
             
             # Add sigma^2/2*tau to the diagonal of Py
-            if low_pass_add:
-                diagonal_matrix = np.eye(Py.shape[0]) * (noise_sigma**2 / (2 * noise_tau))
-                Py = Py + diagonal_matrix
 
 
             for kl in range(com_params['num_trials']):
@@ -280,8 +289,9 @@ def Calculate_Pred_perf_Dim(model,gamma_vals,contrast_vals,fb_gain,input_gain_be
                     'dims': dims_V4
                 }
             }
+            covariance_data[gamma,contrast] = Py
 
-    return performance_data
+    return performance_data, covariance_data
 
 def Calculate_Covariance_mean(model,gamma_vals,contrast,g,fb_gain,input_gain_beta1,input_gain_beta4,method,com_params,delta_tau,noise,t_span=[0,6]):
     N = model.params['N']

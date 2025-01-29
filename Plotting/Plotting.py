@@ -12,7 +12,7 @@ def plot_steady_states(steady_states, c_vals, gamma_vals, fb_gain, input_gain_be
     fig, axs = plt.subplots(1, 2, figsize=figsize, sharey=False, sharex=False)
 
     for gamma in gamma_vals:
-        steady_states_gamma = [steady_states[(gamma, c)] for c in c_vals]
+        steady_states_gamma = [steady_states[(gamma, float(c))] for c in c_vals]
         
         if fb_gain:
             label = rf'$\gamma_1={gamma}$'
@@ -23,17 +23,17 @@ def plot_steady_states(steady_states, c_vals, gamma_vals, fb_gain, input_gain_be
         
 
         # Plot V1 firing rate (y1+)
-        axs[0].plot(c_vals*100, [state[index_y1]**2 for state in steady_states_gamma], '-', lw=line_width, label=label)
+        axs[0].plot(c_vals*100, [state[index_y1] for state in steady_states_gamma], '-', lw=line_width, label=label)
         # Plot V4 firing rate (y4+)
-        axs[1].plot(c_vals*100, [state[index_y4]**2 for state in steady_states_gamma], '-', lw=line_width)
+        axs[1].plot(c_vals*100, [state[index_y4] for state in steady_states_gamma], '-', lw=line_width)
 
     axs[0].set_xscale('log')
     axs[1].set_xscale('log')
 
-    axs[0].set_xlabel(r'$\textnormal{Contrast (\%)}$', fontsize=labelsize)
-    axs[1].set_xlabel(r'$\textnormal{Contrast (\%)}$', fontsize=labelsize)
-    axs[0].set_ylabel(r'$\textnormal{Relative firing rate}$', fontsize=labelsize)
-    axs[1].set_ylabel(r'$\textnormal{Relative firing rate}$', fontsize=labelsize)
+    axs[0].set_xlabel(r'$\text{Contrast (\%)}$', fontsize=labelsize)
+    axs[1].set_xlabel(r'$\text{Contrast (\%)}$', fontsize=labelsize)
+    axs[0].set_ylabel(r'$\text{Relative firing rate}$', fontsize=labelsize)
+    axs[1].set_ylabel(r'$\text{Relative firing rate}$', fontsize=labelsize)
 
     # Modify the y-axis ticks density
     axs[0].yaxis.set_major_locator(ticker.MaxNLocator(6))
@@ -47,12 +47,19 @@ def plot_steady_states(steady_states, c_vals, gamma_vals, fb_gain, input_gain_be
     axs[0].set_title('V1', fontsize=labelsize)
     axs[1].set_title('V4', fontsize=labelsize)
     
-    if fb_gain:
-        xticks = [ 1, 10, 100]
-        xticklabels = [r'$\textnormal{1}$', r'$\textnormal{10}$', r'$\textnormal{100}$']
-    elif input_gain_beta1:
-        xticks = [ 0.1,1,10,100]
-        xticklabels = [r'$\textnormal{0.1}$', r'$\textnormal{1}$', r'$\textnormal{10}$', r'$\textnormal{100}$']
+    # if fb_gain:
+    #     xticks = [ 1, 10, 100]
+    #     xticklabels = [r'$\textnormal{1}$', r'$\textnormal{10}$', r'$\textnormal{100}$']
+    # elif input_gain_beta1:
+    #     xticks = [ 0.1,1,10,100]
+    #     xticklabels = [r'$\textnormal{0.1}$', r'$\textnormal{1}$', r'$\textnormal{10}$', r'$\textnormal{100}$']
+    # if fb_gain:
+    xticks = [1, 10, 100]
+    xticklabels = [r'$\text{1}$', r'$\text{10}$', r'$\text{100}$']  # Replaced \textnormal with \text
+    # elif input_gain_beta1:
+    #     xticks = [0.1, 1, 10, 100]
+    #     xticklabels = [r'$\text{0.1}$', r'$\text{1}$', r'$\text{10}$', r'$\text{100}$']
+    
     for ax in axs:
         ax.set_xticks(xticks)
         ax.set_xticklabels(xticklabels)
@@ -107,6 +114,58 @@ def plot_coherence_data(coherence_data, gamma_vals, contrast, fb_gain, input_gai
     ax.set_ylabel(r'$\mathrm{V1\text{-}V2\;Coherence}$', fontsize=line_labelsize)
     ax.tick_params(axis='both', which='major', labelsize=line_labelsize)
     ax.legend(fontsize=legendsize, loc='best', frameon=False, handletextpad=0.2, handlelength=1.0, labelspacing=0.2)
+
+    # Use manual adjustment instead of tight_layout
+    plt.subplots_adjust(left=0.15, right=0.95, top=0.95, bottom=0.15)
+    
+    return fig, ax
+
+def plot_coherence_data_fixed_gamma(coherence_data, contrast_vals, gamma, line_width=5, line_labelsize=42, legendsize=42):
+    """
+    Plot coherence for a fixed gamma value across different contrasts.
+    
+    Args:
+        coherence_data (dict): Dictionary containing coherence data
+        contrast_vals (list): List of contrast values to plot
+        gamma (float): The gamma value to plot
+        line_width (int): Width of plotted lines
+        line_labelsize (int): Size of axis labels
+        legendsize (int): Size of legend text
+    """
+    fig, ax = plt.subplots(figsize=(14, 10))
+    
+    # Create a truncated viridis colormap that does not include the last yellow part
+    viridis = plt.get_cmap('viridis')
+    truncated_viridis = mcolors.ListedColormap(viridis(np.linspace(0, 0.8, 256)))
+    
+    norm = mcolors.Normalize(vmin=min(contrast_vals), vmax=max(contrast_vals))
+    
+    for contrast in contrast_vals:
+        key = (gamma, contrast)
+        if key not in coherence_data:
+            print(f"Warning: No coherence data found for contrast = {contrast} and gamma = {gamma}")
+            continue
+            
+        data = coherence_data[key]
+        freq = data['freq']
+        coh = data['coh']
+        
+        # Get color from truncated colormap
+        color = truncated_viridis(norm(contrast))
+        
+        # Label showing contrast value
+        label = rf'$c={contrast}$'
+        
+        ax.semilogx(freq, coh, lw=line_width, linestyle='-', label=label, color=color)
+    
+    # Fix the LaTeX formatting in labels
+    ax.set_xlabel(r'$\mathrm{Frequency\;(Hz)}$', fontsize=line_labelsize)
+    ax.set_ylabel(r'$\mathrm{V1\text{-}V4\;Coherence}$', fontsize=line_labelsize)
+    ax.tick_params(axis='both', which='major', labelsize=line_labelsize)
+    ax.legend(fontsize=legendsize, loc='best', frameon=False, handletextpad=0.2, handlelength=1.0, labelspacing=0.2)
+    
+    # Add title showing gamma value
+    ax.set_title(rf'$\gamma_1={gamma}$', fontsize=line_labelsize)
 
     # Use manual adjustment instead of tight_layout
     plt.subplots_adjust(left=0.15, right=0.95, top=0.95, bottom=0.15)
@@ -662,14 +721,14 @@ def plot_pred_perf_vs_dim(performance_data, gamma_vals, contrast, fb_gain, input
         V4_dims = data['V4']['dims']
         
         # Fill between for V1 data
-        ax.fill_between(V1_dims, V1_mean - V1_std, V1_mean + V1_std, 
+        ax.fill_between(V1_dims, V1_mean - 0.5*V1_std, V1_mean + 0.5*V1_std, 
                        color='gray', alpha=0.1)
         ax.plot(V1_dims, V1_mean, marker=markers['V1'], 
                 linestyle='None', markersize=12,
                 color=color, markeredgecolor='black')
         
         # Fill between for V4 data
-        ax.fill_between(V4_dims, V4_mean - V4_std, V4_mean + V4_std, 
+        ax.fill_between(V4_dims, V4_mean - 0.5*V4_std, V4_mean + 0.5*V4_std, 
                        color='gray', alpha=0.1)
         ax.plot(V4_dims, V4_mean, marker=markers['V4'], 
                 markersize=12, linestyle='None',
