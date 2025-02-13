@@ -49,9 +49,13 @@ def plot_gain_modulation_results(results_dir):
             print(f"Loading feedback gain data from: {data_file}")
             steady_states = np.load(data_file, allow_pickle=True).item()
             
+            # Extract actual contrast values from the data
+            c_vals = sorted(list(set([c for _, c in steady_states.keys()])))
+            print(f"Using contrast values from data: {c_vals}")
+            
             fig, axs = plot_steady_states(
                 steady_states=steady_states,
-                c_vals=np.logspace(np.log10(1e-2), np.log10(1), 40),
+                c_vals=c_vals,  # Use actual contrast values from data
                 gamma_vals=gamma_vals,
                 fb_gain=True,
                 input_gain_beta1=False,
