@@ -86,7 +86,10 @@ class RingModel:
         Wnn_next = self.params[f'W{n}{n_next}']
         alpha = self.params[f'alpha{n}']
         sigma = self.params[f'sigma{n}']
-        Wn = self.params[f'Wn{n}']  # Changed from N{n} to Wn{n}
+        Wn = self.params[f'Wn{n}'] # Changed from N{n} to Wn{n} #Normalization matrix
+        # if n == 1:
+        #     factor =  (0.51*sigma**2/np.sum(z**2)) #0.51 factor comes from (1-0.7^2), as Wzx is scaled by 0.7
+        #     Wn = Wn * (1- 5*factor)
         beta_0 = self.params[f'beta{n}']
         gamma_0 = self.params[f'gamma{n}']
         b = self.params[f'b{n}']

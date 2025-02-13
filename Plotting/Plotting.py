@@ -11,8 +11,32 @@ import numpy as np
 def plot_steady_states(steady_states, c_vals, gamma_vals, fb_gain, input_gain_beta1, input_gain_beta4, index_y1, index_y4, figsize=(20, 12), line_width=5, labelsize=44, ticksize=44, legendsize=44):
     fig, axs = plt.subplots(1, 2, figsize=figsize, sharey=False, sharex=False)
 
+    # Convert c_vals to numpy array and ensure it's the right length
+    c_vals = np.array([float(c) for c in c_vals])
+    
+    print(f"\nPlotting dimensions:")
+    print(f"Number of contrast values: {len(c_vals)}")
+    print(f"Number of gamma values: {len(gamma_vals)}")
+    
     for gamma in gamma_vals:
-        steady_states_gamma = [steady_states[(gamma, float(c))] for c in c_vals]
+        # Get steady states for this gamma value
+        steady_states_gamma = []
+        for c in c_vals:
+            try:
+                state = steady_states[(gamma, c)]
+                steady_states_gamma.append(state)
+            except KeyError:
+                print(f"Warning: Missing data for gamma={gamma}, contrast={c}")
+                continue
+
+        # Convert to numpy arrays for plotting
+        y1_values = np.array([state[index_y1] for state in steady_states_gamma])
+        y4_values = np.array([state[index_y4] for state in steady_states_gamma])
+        x_values = c_vals[:len(steady_states_gamma)] * 100  # Match length with available data
+        
+        print(f"For gamma={gamma}:")
+        print(f"  x_values shape: {x_values.shape}")
+        print(f"  y1_values shape: {y1_values.shape}")
         
         if fb_gain:
             label = rf'$\gamma_1={gamma}$'
@@ -20,12 +44,11 @@ def plot_steady_states(steady_states, c_vals, gamma_vals, fb_gain, input_gain_be
             label = rf'$\beta_1={gamma}$'
         elif input_gain_beta4:
             label = rf'$\beta_4={gamma}$'
-        
 
         # Plot V1 firing rate (y1+)
-        axs[0].plot(c_vals*100, [state[index_y1] for state in steady_states_gamma], '-', lw=line_width, label=label)
+        axs[0].plot(x_values, y1_values, '-', lw=line_width, label=label)
         # Plot V4 firing rate (y4+)
-        axs[1].plot(c_vals*100, [state[index_y4] for state in steady_states_gamma], '-', lw=line_width)
+        axs[1].plot(x_values, y4_values, '-', lw=line_width)
 
     axs[0].set_xscale('log')
     axs[1].set_xscale('log')
@@ -123,6 +146,7 @@ def plot_coherence_data(coherence_data, gamma_vals, contrast, fb_gain, input_gai
 def plot_coherence_data_fixed_gamma(coherence_data, contrast_vals, gamma, line_width=5, line_labelsize=42, legendsize=42):
     """
     Plot coherence for a fixed gamma value across different contrasts.
+    Uses linear scales for both axes.
     
     Args:
         coherence_data (dict): Dictionary containing coherence data
@@ -153,16 +177,29 @@ def plot_coherence_data_fixed_gamma(coherence_data, contrast_vals, gamma, line_w
         # Get color from truncated colormap
         color = truncated_viridis(norm(contrast))
         
-        # Label showing contrast value
-        label = rf'$c={contrast}$'
+        # Label showing contrast value as percentage
+        contrast_percent = int(contrast * 100)
+        label = f'{contrast_percent}%'
         
-        ax.semilogx(freq, coh, lw=line_width, linestyle='-', label=label, color=color)
+        ax.plot(freq, coh, lw=line_width, linestyle='-', label=label, color=color)
     
     # Fix the LaTeX formatting in labels
     ax.set_xlabel(r'$\mathrm{Frequency\;(Hz)}$', fontsize=line_labelsize)
     ax.set_ylabel(r'$\mathrm{V1\text{-}V4\;Coherence}$', fontsize=line_labelsize)
     ax.tick_params(axis='both', which='major', labelsize=line_labelsize)
-    ax.legend(fontsize=legendsize, loc='best', frameon=False, handletextpad=0.2, handlelength=1.0, labelspacing=0.2)
+    
+    # Create legend with 'c' at the top, no box
+    ax.legend(title='c', fontsize=legendsize, loc='upper right', frameon=False, 
+             handletextpad=0.2, handlelength=1.0, labelspacing=0.2,
+             title_fontsize=legendsize)
+    
+    # Set axis limits and ticks
+    ax.set_xlim(0, 80)
+    xticks = np.array([0, 20, 40, 60, 80])
+    ax.set_xticks(xticks)
+    
+    # Add grid
+    ax.grid(True, linestyle='--', alpha=0.7)
     
     # Add title showing gamma value
     ax.set_title(rf'$\gamma_1={gamma}$', fontsize=line_labelsize)
