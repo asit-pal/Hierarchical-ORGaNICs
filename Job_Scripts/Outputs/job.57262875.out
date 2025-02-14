@@ -1,0 +1,18 @@
+Running Power Spectra Analysis
+Plotting Power Spectra
+
+=== Starting Power Spectra Analysis for V1 ===
+Processing directory: /home/ap6603/Script_analysis/Results_3/config_56
+Loading power spectra data...
+
+Gamma values found in data: [0.9]
+Contrast values found in data: [0.025, 0.037, 0.061, 0.097, 0.163, 0.359, 0.503, 0.72]
+
+Processing gamma = 0.9
+
+Plotting power spectra for gamma=0.9
+Saved plot to: /home/ap6603/Script_analysis/Results_3/config_56/Plots/Power_Spectra/power_spectrum_V1_gamma_0.9_fb_gain_v1.pdf
+
+=== Starting Power Spectra Analysis for V2 ===
+Processing directory: /home/ap6603/Script_analysis/Results_3/config_56
+Error: Power spectra data file not found: /home/ap6603/Script_analysis/Results_3/config_56/Data/power_spectra_fb_gain_v2.npy

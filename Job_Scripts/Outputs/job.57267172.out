@@ -1,0 +1,39 @@
+/opt/slurm/data/slurmd/job57267172/slurm_script: line 29: warning: here-document at line 18 delimited by end-of-file (wanted `EOF')
+Running Coherence Analysis
+Current working directory: /home/ap6603/Script_analysis
+Attempting to load config from: /home/ap6603/Script_analysis/Results_3/config_71/config_71.yaml
+Contrast:   0%|          | 0/8 [00:00<?, ?it/s]
+Gamma (c=0.025):   0%|          | 0/1 [00:00<?, ?it/s][A
+Gamma (c=0.025): 100%|██████████| 1/1 [00:20<00:00, 20.19s/it][A
+                                                              [AContrast:  12%|█▎        | 1/8 [00:20<02:21, 20.19s/it]
+Gamma (c=0.037):   0%|          | 0/1 [00:00<?, ?it/s][A
+Gamma (c=0.037): 100%|██████████| 1/1 [00:20<00:00, 20.38s/it][A
+                                                              [AContrast:  25%|██▌       | 2/8 [00:40<02:01, 20.30s/it]
+Gamma (c=0.061):   0%|          | 0/1 [00:00<?, ?it/s][A
+Gamma (c=0.061): 100%|██████████| 1/1 [00:17<00:00, 17.26s/it][A
+                                                              [AContrast:  38%|███▊      | 3/8 [00:57<01:34, 18.91s/it]
+Gamma (c=0.097):   0%|          | 0/1 [00:00<?, ?it/s][A
+Gamma (c=0.097): 100%|██████████| 1/1 [00:17<00:00, 17.95s/it][A
+                                                              [AContrast:  50%|█████     | 4/8 [01:15<01:14, 18.53s/it]
+Gamma (c=0.163):   0%|          | 0/1 [00:00<?, ?it/s][A
+Gamma (c=0.163): 100%|██████████| 1/1 [00:18<00:00, 18.06s/it][A
+                                                              [AContrast:  62%|██████▎   | 5/8 [01:33<00:55, 18.36s/it]
+Gamma (c=0.359):   0%|          | 0/1 [00:00<?, ?it/s][A
+Gamma (c=0.359): 100%|██████████| 1/1 [00:19<00:00, 19.24s/it][A
+                                                              [AContrast:  75%|███████▌  | 6/8 [01:53<00:37, 18.66s/it]
+Gamma (c=0.503):   0%|          | 0/1 [00:00<?, ?it/s][A
+Gamma (c=0.503): 100%|██████████| 1/1 [00:19<00:00, 19.05s/it][A
+                                                              [AContrast:  88%|████████▊ | 7/8 [02:12<00:18, 18.79s/it]
+Gamma (c=0.72):   0%|          | 0/1 [00:00<?, ?it/s][A
+Gamma (c=0.72): 100%|██████████| 1/1 [00:19<00:00, 19.12s/it][A
+                                                             [AContrast: 100%|██████████| 8/8 [02:31<00:00, 18.89s/it]Contrast: 100%|██████████| 8/8 [02:31<00:00, 18.91s/it]
+Saved coherence data to: /home/ap6603/Script_analysis/Results_3/config_71/Data/coherence_fb_gain_all.npy
+Plotting Coherence Analysis
+Processing results from: /home/ap6603/Script_analysis/Results_3/config_71
+Loading feedback gain coherence data from: /home/ap6603/Script_analysis/Results_3/config_71/Data/coherence_fb_gain_all.npy
+
+Gamma values found in data: [1.0]
+Contrast values found in data: [0.025, 0.037, 0.061, 0.097, 0.163, 0.359, 0.503, 0.72]
+Creating plot for gamma = 1.0
+Saved plot to: /home/ap6603/Script_analysis/Results_3/config_71/Plots/Coherence/coherence_fixed_gamma_1.0_fb_gain.pdf
+/bin/bash: line 11: EOF: command not found

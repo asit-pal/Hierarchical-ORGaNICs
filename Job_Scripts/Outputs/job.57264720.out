@@ -1,0 +1,34 @@
+Running Power Spectra Analysis
+Analyzing V1 power spectra
+Current working directory: /home/ap6603/Script_analysis
+Attempting to load config from: /home/ap6603/Script_analysis/Results_3/config_69/config_69.yaml
+Contrast:   0%|          | 0/1 [00:00<?, ?it/s]
+Gamma (c=1.0):   0%|          | 0/5 [00:00<?, ?it/s][A
+Gamma (c=1.0):  20%|██        | 1/5 [00:22<01:31, 22.89s/it][A
+Gamma (c=1.0):  40%|████      | 2/5 [00:44<01:06, 22.24s/it][A
+Gamma (c=1.0):  60%|██████    | 3/5 [01:05<00:43, 21.61s/it][A
+Gamma (c=1.0):  80%|████████  | 4/5 [01:25<00:21, 21.10s/it][A
+Gamma (c=1.0): 100%|██████████| 5/5 [01:46<00:00, 21.09s/it][A
+                                                            [AContrast: 100%|██████████| 1/1 [01:46<00:00, 106.93s/it]Contrast: 100%|██████████| 1/1 [01:46<00:00, 106.93s/it]
+Saved power spectra data to: /home/ap6603/Script_analysis/Results_3/config_69/Data/power_spectra_input_beta1_gain_v1.npy
+Analyzing V2 power spectra
+Current working directory: /home/ap6603/Script_analysis
+Attempting to load config from: /home/ap6603/Script_analysis/Results_3/config_69/config_69.yaml
+Contrast:   0%|          | 0/1 [00:00<?, ?it/s]
+Gamma (c=1.0):   0%|          | 0/5 [00:00<?, ?it/s][A
+Gamma (c=1.0):  20%|██        | 1/5 [00:23<01:33, 23.32s/it][A
+Gamma (c=1.0):  40%|████      | 2/5 [00:47<01:11, 23.69s/it][A
+Gamma (c=1.0):  60%|██████    | 3/5 [01:09<00:45, 22.80s/it][A
+Gamma (c=1.0):  80%|████████  | 4/5 [01:30<00:22, 22.41s/it][A
+Gamma (c=1.0): 100%|██████████| 5/5 [01:52<00:00, 22.27s/it][A
+                                                            [AContrast: 100%|██████████| 1/1 [01:52<00:00, 112.85s/it]Contrast: 100%|██████████| 1/1 [01:52<00:00, 112.85s/it]
+Saved power spectra data to: /home/ap6603/Script_analysis/Results_3/config_69/Data/power_spectra_input_beta1_gain_v2.npy
+Plotting Power Spectra
+
+=== Starting Power Spectra Analysis for V1 ===
+Processing directory: /home/ap6603/Script_analysis/Results_3/config_69
+Error: Power spectra data file not found: /home/ap6603/Script_analysis/Results_3/config_69/Data/power_spectra_fb_gain_v1.npy
+
+=== Starting Power Spectra Analysis for V2 ===
+Processing directory: /home/ap6603/Script_analysis/Results_3/config_69
+Error: Power spectra data file not found: /home/ap6603/Script_analysis/Results_3/config_69/Data/power_spectra_fb_gain_v2.npy
