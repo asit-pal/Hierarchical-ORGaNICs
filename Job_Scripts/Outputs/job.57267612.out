@@ -1,0 +1,21 @@
+/opt/slurm/data/slurmd/job57267612/slurm_script: line 29: warning: here-document at line 18 delimited by end-of-file (wanted `EOF')
+Running Coherence Analysis
+Current working directory: /home/ap6603/Script_analysis
+Attempting to load config from: /home/ap6603/Script_analysis/Results_3/config_74/config_74.yaml
+Contrast:   0%|          | 0/8 [00:00<?, ?it/s]
+Gamma (c=0.025):   0%|          | 0/1 [00:00<?, ?it/s][A
+Gamma (c=0.025): 100%|██████████| 1/1 [00:24<00:00, 24.19s/it][A
+                                                              [AContrast:  12%|█▎        | 1/8 [00:24<02:49, 24.19s/it]
+Gamma (c=0.037):   0%|          | 0/1 [00:00<?, ?it/s][A
+Gamma (c=0.037): 100%|██████████| 1/1 [00:30<00:00, 30.36s/it][A
+                                                              [AContrast:  25%|██▌       | 2/8 [00:54<02:46, 27.82s/it]
+Gamma (c=0.061):   0%|          | 0/1 [00:00<?, ?it/s][A
+Gamma (c=0.061): 100%|██████████| 1/1 [00:23<00:00, 23.84s/it][A
+                                                              [AContrast:  38%|███▊      | 3/8 [01:18<02:10, 26.00s/it]
+Gamma (c=0.097):   0%|          | 0/1 [00:00<?, ?it/s][A
+Gamma (c=0.097): 100%|██████████| 1/1 [00:21<00:00, 21.38s/it][A
+                                                              [AContrast:  50%|█████     | 4/8 [01:39<01:36, 24.18s/it]
+Gamma (c=0.163):   0%|          | 0/1 [00:00<?, ?it/s][A
+Gamma (c=0.163): 100%|██████████| 1/1 [00:24<00:00, 24.39s/it][A
+                                                              [AContrast:  62%|██████▎   | 5/8 [02:04<01:12, 24.26s/it]
+Gamma (c=0.359):   0%|          | 0/1 [00:00<?, ?it/s][A

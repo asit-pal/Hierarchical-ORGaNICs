@@ -1,0 +1,29 @@
+/opt/slurm/data/slurmd/job57239572/slurm_script: line 28: warning: here-document at line 18 delimited by end-of-file (wanted `EOF')
+Plotting Gain Modulation Analysis
+Processing results from: /home/ap6603/Script_analysis/Results_3/config_69
+Results directory: /home/ap6603/Script_analysis/Results_3/config_69
+Data directory: /home/ap6603/Script_analysis/Results_3/config_69/Data
+Loading beta1 gain data from: /home/ap6603/Script_analysis/Results_3/config_69/Data/steady_states_input_gain_beta1_all.npy
+Found beta1 values: [0.5, 0.75, 1.0, 1.25, 1.5]
+Found contrast values: [np.float64(0.01), np.float64(0.01125335582600765), np.float64(0.012663801734674034), np.float64(0.014251026703029978), np.float64(0.0160371874375133), np.float64(0.018047217668271703), np.float64(0.020309176209047358), np.float64(0.022854638641349907), np.float64(0.025719138090593445), np.float64(0.028942661247167503), np.float64(0.03257020655659783), np.float64(0.03665241237079628), np.float64(0.04124626382901352), np.float64(0.046415888336127774), np.float64(0.052233450742668434), np.float64(0.058780160722749115), np.float64(0.06614740641230149), np.float64(0.07443803013251689), np.float64(0.08376776400682916), np.float64(0.09426684551178854), np.float64(0.10608183551394483), np.float64(0.11937766417144363), np.float64(0.13433993325989002), np.float64(0.15117750706156624), np.float64(0.17012542798525893), np.float64(0.19144819761699575), np.float64(0.21544346900318834), np.float64(0.24244620170823283), np.float64(0.2728333376486768), np.float64(0.30702906297578497), np.float64(0.34551072945922184), np.float64(0.3888155180308087), np.float64(0.43754793750741844), np.float64(0.4923882631706739), np.float64(0.5541020330009492), np.float64(0.6235507341273913), np.float64(0.7017038286703826), np.float64(0.7896522868499725), np.float64(0.8886238162743403), np.float64(1.0)]
+
+Plotting dimensions:
+Number of contrast values: 40
+Number of gamma values: 5
+For gamma=0.5:
+  x_values shape: (40,)
+  y1_values shape: (40,)
+For gamma=0.75:
+  x_values shape: (40,)
+  y1_values shape: (40,)
+For gamma=1.0:
+  x_values shape: (40,)
+  y1_values shape: (40,)
+For gamma=1.25:
+  x_values shape: (40,)
+  y1_values shape: (40,)
+For gamma=1.5:
+  x_values shape: (40,)
+  y1_values shape: (40,)
+Saved plot to: /home/ap6603/Script_analysis/Results_3/config_69/Plots/Gain_modulation/steady_states_input_gain_beta1.pdf
+/bin/bash: line 10: EOF: command not found
