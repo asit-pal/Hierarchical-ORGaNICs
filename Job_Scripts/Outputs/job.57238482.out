@@ -1,63 +1,0 @@
-/opt/slurm/data/slurmd/job57238482/slurm_script: line 29: warning: here-document at line 18 delimited by end-of-file (wanted `EOF')
-Running Coherence Analysis
-Current working directory: /home/ap6603/Script_analysis
-Attempting to load config from: /home/ap6603/Script_analysis/Results_3/config_68/config_68.yaml
-Contrast:   0%|          | 0/8 [00:00<?, ?it/s]
-Gamma (c=0.025):   0%|          | 0/1 [00:00<?, ?it/s][A
-Gamma (c=0.025): 100%|██████████| 1/1 [00:18<00:00, 18.17s/it][A
-                                                              [AContrast:  12%|█▎        | 1/8 [00:18<02:07, 18.17s/it]
-Gamma (c=0.037):   0%|          | 0/1 [00:00<?, ?it/s][A
-Gamma (c=0.037): 100%|██████████| 1/1 [00:17<00:00, 17.67s/it][A
-                                                              [AContrast:  25%|██▌       | 2/8 [00:35<01:47, 17.88s/it]
-Gamma (c=0.061):   0%|          | 0/1 [00:00<?, ?it/s][A
-Gamma (c=0.061): 100%|██████████| 1/1 [00:17<00:00, 17.53s/it][A
-                                                              [AContrast:  38%|███▊      | 3/8 [00:53<01:28, 17.72s/it]
-Gamma (c=0.097):   0%|          | 0/1 [00:00<?, ?it/s][A
-Gamma (c=0.097): 100%|██████████| 1/1 [00:17<00:00, 17.56s/it][A
-                                                              [AContrast:  50%|█████     | 4/8 [01:10<01:10, 17.66s/it]
-Gamma (c=0.163):   0%|          | 0/1 [00:00<?, ?it/s][A
-Gamma (c=0.163): 100%|██████████| 1/1 [00:18<00:00, 18.03s/it][A
-                                                              [AContrast:  62%|██████▎   | 5/8 [01:28<00:53, 17.79s/it]
-Gamma (c=0.359):   0%|          | 0/1 [00:00<?, ?it/s][A
-Gamma (c=0.359): 100%|██████████| 1/1 [00:18<00:00, 18.34s/it][A
-                                                              [AContrast:  75%|███████▌  | 6/8 [01:47<00:35, 17.98s/it]
-Gamma (c=0.503):   0%|          | 0/1 [00:00<?, ?it/s][A
-Gamma (c=0.503): 100%|██████████| 1/1 [00:19<00:00, 19.23s/it][A
-                                                              [AContrast:  88%|████████▊ | 7/8 [02:06<00:18, 18.39s/it]
-Gamma (c=0.72):   0%|          | 0/1 [00:00<?, ?it/s][A
-Gamma (c=0.72): 100%|██████████| 1/1 [00:19<00:00, 19.56s/it][A
-                                                             [AContrast: 100%|██████████| 8/8 [02:26<00:00, 18.76s/it]Contrast: 100%|██████████| 8/8 [02:26<00:00, 18.26s/it]
-Saved coherence data to: /home/ap6603/Script_analysis/Results_3/config_68/Data/coherence_fb_gain_all.npy
-Plotting Coherence Analysis
-Processing results from: /home/ap6603/Script_analysis/Results_3/config_68
-Results directory: /home/ap6603/Script_analysis/Results_3/config_68
-Data directory: /home/ap6603/Script_analysis/Results_3/config_68/Data
-Loading feedback gain coherence data from: /home/ap6603/Script_analysis/Results_3/config_68/Data/coherence_fb_gain_all.npy
-
-Gamma values found in data: [0.9]
-Contrast values found in data: [0.025, 0.037, 0.061, 0.097, 0.163, 0.359, 0.503, 0.72]
-Creating feedback gain plot for contrast = 0.025
-Saved plot to: /home/ap6603/Script_analysis/Results_3/config_68/Plots/Coherence/coherence_fb_gain_contrast_0.025.pdf
-Creating feedback gain plot for contrast = 0.037
-Saved plot to: /home/ap6603/Script_analysis/Results_3/config_68/Plots/Coherence/coherence_fb_gain_contrast_0.037.pdf
-Creating feedback gain plot for contrast = 0.061
-Saved plot to: /home/ap6603/Script_analysis/Results_3/config_68/Plots/Coherence/coherence_fb_gain_contrast_0.061.pdf
-Creating feedback gain plot for contrast = 0.097
-Saved plot to: /home/ap6603/Script_analysis/Results_3/config_68/Plots/Coherence/coherence_fb_gain_contrast_0.097.pdf
-Creating feedback gain plot for contrast = 0.163
-Saved plot to: /home/ap6603/Script_analysis/Results_3/config_68/Plots/Coherence/coherence_fb_gain_contrast_0.163.pdf
-Creating feedback gain plot for contrast = 0.359
-Saved plot to: /home/ap6603/Script_analysis/Results_3/config_68/Plots/Coherence/coherence_fb_gain_contrast_0.359.pdf
-Creating feedback gain plot for contrast = 0.503
-Saved plot to: /home/ap6603/Script_analysis/Results_3/config_68/Plots/Coherence/coherence_fb_gain_contrast_0.503.pdf
-Creating feedback gain plot for contrast = 0.72
-Saved plot to: /home/ap6603/Script_analysis/Results_3/config_68/Plots/Coherence/coherence_fb_gain_contrast_0.72.pdf
-Warning: Beta1 gain coherence data file not found at /home/ap6603/Script_analysis/Results_3/config_68/Data/coherence_input_gain_beta1_all.npy
-Processing results from: /home/ap6603/Script_analysis/Results_3/config_68
-Loading coherence data from: /home/ap6603/Script_analysis/Results_3/config_68/Data/coherence_fb_gain_all.npy
-
-Gamma values found in data: [0.9]
-Contrast values found in data: [0.025, 0.037, 0.061, 0.097, 0.163, 0.359, 0.503, 0.72]
-Creating plot for gamma = 0.9
-Saved plot to: /home/ap6603/Script_analysis/Results_3/config_68/Plots/Coherence/coherence_fixed_gamma_0.9.pdf
-/bin/bash: line 11: EOF: command not found

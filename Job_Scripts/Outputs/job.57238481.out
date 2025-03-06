@@ -1,158 +1,0 @@
-Running Power Spectra Analysis
-Analyzing V1 power spectra
-Current working directory: /home/ap6603/Script_analysis
-Attempting to load config from: /home/ap6603/Script_analysis/Results_3/config_68/config_68.yaml
-Contrast:   0%|          | 0/8 [00:00<?, ?it/s]
-Gamma (c=0.025):   0%|          | 0/1 [00:00<?, ?it/s][A
-Gamma (c=0.025): 100%|██████████| 1/1 [00:20<00:00, 20.23s/it][A
-                                                              [AContrast:  12%|█▎        | 1/8 [00:20<02:21, 20.23s/it]
-Gamma (c=0.037):   0%|          | 0/1 [00:00<?, ?it/s][A
-Gamma (c=0.037): 100%|██████████| 1/1 [00:18<00:00, 18.20s/it][A
-                                                              [AContrast:  25%|██▌       | 2/8 [00:38<01:54, 19.04s/it]
-Gamma (c=0.061):   0%|          | 0/1 [00:00<?, ?it/s][A
-Gamma (c=0.061): 100%|██████████| 1/1 [00:17<00:00, 17.87s/it][A
-                                                              [AContrast:  38%|███▊      | 3/8 [00:56<01:32, 18.50s/it]
-Gamma (c=0.097):   0%|          | 0/1 [00:00<?, ?it/s][A
-Gamma (c=0.097): 100%|██████████| 1/1 [00:18<00:00, 18.29s/it][A
-                                                              [AContrast:  50%|█████     | 4/8 [01:14<01:13, 18.42s/it]
-Gamma (c=0.163):   0%|          | 0/1 [00:00<?, ?it/s][A
-Gamma (c=0.163): 100%|██████████| 1/1 [00:18<00:00, 18.73s/it][A
-                                                              [AContrast:  62%|██████▎   | 5/8 [01:33<00:55, 18.53s/it]
-Gamma (c=0.359):   0%|          | 0/1 [00:00<?, ?it/s][A
-Gamma (c=0.359): 100%|██████████| 1/1 [00:19<00:00, 19.47s/it][A
-                                                              [AContrast:  75%|███████▌  | 6/8 [01:52<00:37, 18.85s/it]
-Gamma (c=0.503):   0%|          | 0/1 [00:00<?, ?it/s][A
-Gamma (c=0.503): 100%|██████████| 1/1 [00:20<00:00, 20.06s/it][A
-                                                              [AContrast:  88%|████████▊ | 7/8 [02:12<00:19, 19.25s/it]
-Gamma (c=0.72):   0%|          | 0/1 [00:00<?, ?it/s][A
-Gamma (c=0.72): 100%|██████████| 1/1 [00:19<00:00, 19.70s/it][A
-                                                             [AContrast: 100%|██████████| 8/8 [02:32<00:00, 19.39s/it]Contrast: 100%|██████████| 8/8 [02:32<00:00, 19.07s/it]
-Saved power spectra data to: /home/ap6603/Script_analysis/Results_3/config_68/Data/power_spectra_fb_gain_v1.npy
-Analyzing V2 power spectra
-Current working directory: /home/ap6603/Script_analysis
-Attempting to load config from: /home/ap6603/Script_analysis/Results_3/config_68/config_68.yaml
-Contrast:   0%|          | 0/8 [00:00<?, ?it/s]
-Gamma (c=0.025):   0%|          | 0/1 [00:00<?, ?it/s][A
-Gamma (c=0.025): 100%|██████████| 1/1 [00:20<00:00, 20.45s/it][A
-                                                              [AContrast:  12%|█▎        | 1/8 [00:20<02:23, 20.45s/it]
-Gamma (c=0.037):   0%|          | 0/1 [00:00<?, ?it/s][A
-Gamma (c=0.037): 100%|██████████| 1/1 [00:20<00:00, 20.46s/it][A
-                                                              [AContrast:  25%|██▌       | 2/8 [00:40<02:02, 20.46s/it]
-Gamma (c=0.061):   0%|          | 0/1 [00:00<?, ?it/s][A
-Gamma (c=0.061): 100%|██████████| 1/1 [00:20<00:00, 20.80s/it][A
-                                                              [AContrast:  38%|███▊      | 3/8 [01:01<01:43, 20.61s/it]
-Gamma (c=0.097):   0%|          | 0/1 [00:00<?, ?it/s][A
-Gamma (c=0.097): 100%|██████████| 1/1 [00:20<00:00, 20.96s/it][A
-                                                              [AContrast:  50%|█████     | 4/8 [01:22<01:22, 20.75s/it]
-Gamma (c=0.163):   0%|          | 0/1 [00:00<?, ?it/s][A
-Gamma (c=0.163): 100%|██████████| 1/1 [00:20<00:00, 21.00s/it][A
-                                                              [AContrast:  62%|██████▎   | 5/8 [01:43<01:02, 20.84s/it]
-Gamma (c=0.359):   0%|          | 0/1 [00:00<?, ?it/s][A
-Gamma (c=0.359): 100%|██████████| 1/1 [00:22<00:00, 22.38s/it][A
-                                                              [AContrast:  75%|███████▌  | 6/8 [02:06<00:42, 21.36s/it]
-Gamma (c=0.503):   0%|          | 0/1 [00:00<?, ?it/s][A
-Gamma (c=0.503): 100%|██████████| 1/1 [00:22<00:00, 22.87s/it][A
-                                                              [AContrast:  88%|████████▊ | 7/8 [02:28<00:21, 21.86s/it]
-Gamma (c=0.72):   0%|          | 0/1 [00:00<?, ?it/s][A
-Gamma (c=0.72): 100%|██████████| 1/1 [00:21<00:00, 21.89s/it][A
-                                                             [AContrast: 100%|██████████| 8/8 [02:50<00:00, 21.86s/it]Contrast: 100%|██████████| 8/8 [02:50<00:00, 21.35s/it]
-Saved power spectra data to: /home/ap6603/Script_analysis/Results_3/config_68/Data/power_spectra_fb_gain_v2.npy
-Plotting Power Spectra
-/home/ap6603/Script_analysis/Plotting/Plot_PS_fixed_gamma_remove_background_noise.py:37: RuntimeWarning: invalid value encountered in log
-  params, _ = curve_fit(lambda x, A, alpha: np.log(one_over_f(np.exp(x), A, alpha)),
-
-=== Starting Power Spectra Analysis for V1 ===
-Processing directory: /home/ap6603/Script_analysis/Results_3/config_68
-Loading power spectra data...
-
-Gamma values found in data: [1.0]
-Contrast values found in data: [0.025, 0.037, 0.061, 0.097, 0.163, 0.359, 0.503, 0.72]
-
-Processing gamma = 1.0
-
-Plotting power spectra for gamma=1.0
-Saved plot to: /home/ap6603/Script_analysis/Results_3/config_68/Plots/Power_Spectra/power_spectrum_V1_gamma_1.0_fb_gain_v1.pdf
-/home/ap6603/Script_analysis/Plotting/Plot_PS_fixed_gamma_remove_background_noise.py:37: RuntimeWarning: invalid value encountered in log
-  params, _ = curve_fit(lambda x, A, alpha: np.log(one_over_f(np.exp(x), A, alpha)),
-
-=== Starting Power Spectra Analysis for V2 ===
-Processing directory: /home/ap6603/Script_analysis/Results_3/config_68
-Loading power spectra data...
-
-Gamma values found in data: [1.0]
-Contrast values found in data: [0.025, 0.037, 0.061, 0.097, 0.163, 0.359, 0.503, 0.72]
-
-Processing gamma = 1.0
-
-Plotting power spectra for gamma=1.0
-Saved plot to: /home/ap6603/Script_analysis/Results_3/config_68/Plots/Power_Spectra/power_spectrum_V2_gamma_1.0_fb_gain_v2.pdf
-
-=== Starting Power Spectra Analysis for V1 ===
-Processing directory: /home/ap6603/Script_analysis/Results_3/config_68
-Loading power spectra data from: /home/ap6603/Script_analysis/Results_3/config_68/Data/power_spectra_fb_gain_v1.npy
-
-Gamma values found in data: [1.0]
-Contrast values found in data: [0.025, 0.037, 0.061, 0.097, 0.163, 0.359, 0.503, 0.72]
-Global normalization factor (max power at c=1): 0.018711837411705567
-Creating plot for gamma = 1.0
-Saved plot to: /home/ap6603/Script_analysis/Results_3/config_68/Plots/Power_spectra/power_spectrum_V1_gamma_1.0_fb_gain_v1.pdf
-
-=== Starting Power Spectra Analysis for V2 ===
-Processing directory: /home/ap6603/Script_analysis/Results_3/config_68
-Loading power spectra data from: /home/ap6603/Script_analysis/Results_3/config_68/Data/power_spectra_fb_gain_v2.npy
-
-Gamma values found in data: [1.0]
-Contrast values found in data: [0.025, 0.037, 0.061, 0.097, 0.163, 0.359, 0.503, 0.72]
-Global normalization factor (max power at c=1): 0.02290891877717208
-Creating plot for gamma = 1.0
-Saved plot to: /home/ap6603/Script_analysis/Results_3/config_68/Plots/Power_spectra/power_spectrum_V2_gamma_1.0_fb_gain_v2.pdf
-
-=== Starting Power Spectra Analysis for V1 ===
-Results directory: /home/ap6603/Script_analysis/Results_3/config_68
-Data directory: /home/ap6603/Script_analysis/Results_3/config_68/Data
-Loading power spectra data from: /home/ap6603/Script_analysis/Results_3/config_68/Data/power_spectra_fb_gain_v1.npy
-
-Gamma values found in data: [1.0]
-Contrast values found in data: [0.025, 0.037, 0.061, 0.097, 0.163, 0.359, 0.503, 0.72]
-Global normalization factor (max power at c=1): 0.018711837411705567
-Creating plot for contrast = 0.025
-Saved plot to: /home/ap6603/Script_analysis/Results_3/config_68/Plots/Power_spectra/power_spectra_V1_fb_gain_v1_contrast_0.025.pdf
-Creating plot for contrast = 0.037
-Saved plot to: /home/ap6603/Script_analysis/Results_3/config_68/Plots/Power_spectra/power_spectra_V1_fb_gain_v1_contrast_0.037.pdf
-Creating plot for contrast = 0.061
-Saved plot to: /home/ap6603/Script_analysis/Results_3/config_68/Plots/Power_spectra/power_spectra_V1_fb_gain_v1_contrast_0.061.pdf
-Creating plot for contrast = 0.097
-Saved plot to: /home/ap6603/Script_analysis/Results_3/config_68/Plots/Power_spectra/power_spectra_V1_fb_gain_v1_contrast_0.097.pdf
-Creating plot for contrast = 0.163
-Saved plot to: /home/ap6603/Script_analysis/Results_3/config_68/Plots/Power_spectra/power_spectra_V1_fb_gain_v1_contrast_0.163.pdf
-Creating plot for contrast = 0.359
-Saved plot to: /home/ap6603/Script_analysis/Results_3/config_68/Plots/Power_spectra/power_spectra_V1_fb_gain_v1_contrast_0.359.pdf
-Creating plot for contrast = 0.503
-Saved plot to: /home/ap6603/Script_analysis/Results_3/config_68/Plots/Power_spectra/power_spectra_V1_fb_gain_v1_contrast_0.503.pdf
-Creating plot for contrast = 0.72
-Saved plot to: /home/ap6603/Script_analysis/Results_3/config_68/Plots/Power_spectra/power_spectra_V1_fb_gain_v1_contrast_0.72.pdf
-
-=== Starting Power Spectra Analysis for V2 ===
-Results directory: /home/ap6603/Script_analysis/Results_3/config_68
-Data directory: /home/ap6603/Script_analysis/Results_3/config_68/Data
-Loading power spectra data from: /home/ap6603/Script_analysis/Results_3/config_68/Data/power_spectra_fb_gain_v2.npy
-
-Gamma values found in data: [1.0]
-Contrast values found in data: [0.025, 0.037, 0.061, 0.097, 0.163, 0.359, 0.503, 0.72]
-Global normalization factor (max power at c=1): 0.02290891877717208
-Creating plot for contrast = 0.025
-Saved plot to: /home/ap6603/Script_analysis/Results_3/config_68/Plots/Power_spectra/power_spectra_V2_fb_gain_v2_contrast_0.025.pdf
-Creating plot for contrast = 0.037
-Saved plot to: /home/ap6603/Script_analysis/Results_3/config_68/Plots/Power_spectra/power_spectra_V2_fb_gain_v2_contrast_0.037.pdf
-Creating plot for contrast = 0.061
-Saved plot to: /home/ap6603/Script_analysis/Results_3/config_68/Plots/Power_spectra/power_spectra_V2_fb_gain_v2_contrast_0.061.pdf
-Creating plot for contrast = 0.097
-Saved plot to: /home/ap6603/Script_analysis/Results_3/config_68/Plots/Power_spectra/power_spectra_V2_fb_gain_v2_contrast_0.097.pdf
-Creating plot for contrast = 0.163
-Saved plot to: /home/ap6603/Script_analysis/Results_3/config_68/Plots/Power_spectra/power_spectra_V2_fb_gain_v2_contrast_0.163.pdf
-Creating plot for contrast = 0.359
-Saved plot to: /home/ap6603/Script_analysis/Results_3/config_68/Plots/Power_spectra/power_spectra_V2_fb_gain_v2_contrast_0.359.pdf
-Creating plot for contrast = 0.503
-Saved plot to: /home/ap6603/Script_analysis/Results_3/config_68/Plots/Power_spectra/power_spectra_V2_fb_gain_v2_contrast_0.503.pdf
-Creating plot for contrast = 0.72
-Saved plot to: /home/ap6603/Script_analysis/Results_3/config_68/Plots/Power_spectra/power_spectra_V2_fb_gain_v2_contrast_0.72.pdf

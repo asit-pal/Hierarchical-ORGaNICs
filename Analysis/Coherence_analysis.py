@@ -48,7 +48,7 @@ def main(config_file):
     N = params['N']
     i = int(N / 2)  # y1 index
     j = int(N / 2) + 2*int(N) if Ring_Model.simulate_firing_rates else int(N / 2) + int(N)  # y4 index
-    j = int(N/2) + 1 # y1 index V1-V1 coherence
+    # j = int(N/2) + 1 # y1 index V1-V1 coherence
 
     # Run analyses based on config
     if config['Coherence']['Feedback_gain']['enabled']:
@@ -74,8 +74,7 @@ def main(config_file):
             n_freq_mat=500,
             t_span=fb_config['t_span']
         )
-        if fb_config['save_data']:
-            save_coherence(coherence_data, data_dir, 'fb_gain')
+        save_coherence(coherence_data, data_dir, 'fb_gain')
     
     if config['Coherence']['Input_gain_beta1']['enabled']:
         beta1_config = config['Coherence']['Input_gain_beta1']
@@ -94,14 +93,13 @@ def main(config_file):
             noise_tau=config['noise_params']['noise_tau'],
             contrast_vals=beta1_config['c_vals'],
             method='RK45',
-            beta1_vals=beta1_config['beta1_vals'],
+            gamma_vals=beta1_config['beta1_vals'],
             min_freq=1,
             max_freq=200,
             n_freq_mat=500,
             t_span=beta1_config['t_span']
         )
-        if beta1_config['save_data']:
-            save_coherence(coherence_data, data_dir, 'input_beta1_gain')
+        save_coherence(coherence_data, data_dir, 'input_gain_beta1')
 
 def save_coherence(coherence_data, data_dir, gain_type):
     """

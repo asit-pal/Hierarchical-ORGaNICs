@@ -5,6 +5,7 @@ from scipy.optimize import curve_fit
 import os
 import sys
 import yaml
+import argparse
 
 def one_over_f(f, A, alpha):
     """Calculate 1/f^α noise."""
@@ -40,9 +41,20 @@ def fit_background_noise(freq, power):
         print(f"Error during background fitting: {str(e)}")
         return None
 
-def plot_power_spectra_fixed_gamma(power_data, c_vals, gamma, line_width=5, line_labelsize=24, legendsize=20):
-    """Create power spectra plot for a specific gamma value."""
-    print(f"\nPlotting power spectra for gamma={gamma}")
+def plot_power_spectra_fixed_gamma(power_data, c_vals, gamma, line_width=5, line_labelsize=24, legendsize=20, param_name='gamma1'):
+    """
+    Create power spectra plot for a specific gamma/beta1 value.
+    
+    Args:
+        power_data (dict): Dictionary containing power spectra data
+        c_vals (list): List of contrast values to plot
+        gamma (float): The gamma/beta1 value to plot
+        line_width (int): Width of plotted lines
+        line_labelsize (int): Size of axis labels
+        legendsize (int): Size of legend text
+        param_name (str): Parameter name ('gamma1' or 'beta1')
+    """
+    print(f"\nPlotting power spectra for {param_name}={gamma}")
     
     # Create single plot
     fig, ax = plt.subplots(figsize=(15, 8))
@@ -55,7 +67,7 @@ def plot_power_spectra_fixed_gamma(power_data, c_vals, gamma, line_width=5, line
     # Get frequency array (same for all contrasts)
     first_key = (gamma, c_vals[0])
     if first_key not in power_data:
-        print(f"Error: Data not found for gamma={gamma}, contrast={c_vals[0]}")
+        print(f"Error: Data not found for {param_name}={gamma}, contrast={c_vals[0]}")
         return None, None
     
     freq = power_data[first_key]['freq']
@@ -98,8 +110,9 @@ def plot_power_spectra_fixed_gamma(power_data, c_vals, gamma, line_width=5, line
         power = power_data[key]['power']
         # subtract the background
         power_sub = power - background
+        power_deno = power + background
         # Normalize by dividing by the background fit
-        normalized_power = power_sub / background
+        normalized_power = power_sub / power_deno
         all_normalized_powers.append(normalized_power)
         
         line = ax.plot(freq, normalized_power, color=color, linewidth=line_width)
@@ -111,12 +124,15 @@ def plot_power_spectra_fixed_gamma(power_data, c_vals, gamma, line_width=5, line
     ax.set_ylabel('Normalized Power', fontsize=line_labelsize)
     ax.tick_params(labelsize=line_labelsize)
     ax.grid(True, linestyle='--', alpha=0.7)
-    ax.set_title(f'Normalized Power Spectra (γ={gamma})', fontsize=line_labelsize)
+    
+    # Set title with appropriate symbol based on param_name
+    symbol = r'$\gamma$' if param_name == 'gamma1' else r'$\beta_1$'
+    ax.set_title(f'Normalized Power Spectra ({symbol}={gamma})', fontsize=line_labelsize)
     
     # Set axis limits
     all_normalized_powers = np.array(all_normalized_powers)
-    freq_mask = (freq >= 5) & (freq <= 80)
-    ymax = np.max(all_normalized_powers[:, freq_mask]) * 1.1
+    # freq_mask = (freq >= 5) & (freq <= 80)
+    # ymax = np.max(all_normalized_powers[:, freq_mask]) * 1.1
     # ax.set_ylim(, ymax)
     ax.set_xlim(0, 80)
     
@@ -131,9 +147,15 @@ def plot_power_spectra_fixed_gamma(power_data, c_vals, gamma, line_width=5, line
     plt.tight_layout()
     return fig, ax
 
-def plot_power_spectra_results(results_dir):
-    """Main function to load data and create power spectra plots."""
-    print(f"\n=== Starting Power Spectra Analysis ===")
+def plot_power_spectra_results(results_dir, area='V1'):
+    """
+    Plot power spectra results for both feedback gain and input gain beta1.
+    
+    Args:
+        results_dir (str): Path to results directory
+        area (str): Brain area to plot ('V1' or 'V2')
+    """
+    print(f"\n=== Starting Power Spectra Analysis for {area} ===")
     print(f"Processing directory: {results_dir}")
     
     # Verify directories exist
@@ -150,43 +172,73 @@ def plot_power_spectra_results(results_dir):
     plots_dir = os.path.join(results_dir, 'Plots', 'Power_Spectra')
     os.makedirs(plots_dir, exist_ok=True)
     
-    # Load and process power spectra data
-    gain_type = 'fb_gain'
-    data_file = os.path.join(data_dir, f'power_spectra_{gain_type}_all.npy')
-    if not os.path.exists(data_file):
-        print(f"Error: Power spectra data file not found: {data_file}")
-        return
+    # Plot feedback gain data if it exists
+    gain_type = f'fb_gain_{area.lower()}'
+    data_file = os.path.join(data_dir, f'power_spectra_{gain_type}.npy')
+    if os.path.exists(data_file):
+        print(f"Loading feedback gain data from: {data_file}")
+        power_data = np.load(data_file, allow_pickle=True).item()
         
-    print(f"Loading power spectra data...")
-    power_data = np.load(data_file, allow_pickle=True).item()
-    
-    # Extract gamma and contrast values from the data
-    gamma_vals = sorted(set(g for g, _ in power_data.keys()))
-    c_vals = sorted(set(c for _, c in power_data.keys()))
-    print(f"\nGamma values found in data: {gamma_vals}")
-    print(f"Contrast values found in data: {c_vals}")
-    
-    # Create plot for each gamma value
-    for gamma in gamma_vals:
-        print(f"\nProcessing gamma = {gamma}")
-        fig, ax = plot_power_spectra_fixed_gamma(
-            power_data=power_data,
-            c_vals=c_vals,
-            gamma=gamma
-        )
+        # Extract gamma and contrast values from the data
+        gamma_vals = sorted(set(g for g, _ in power_data.keys()))
+        c_vals = sorted(set(c for _, c in power_data.keys()))
+        print(f"\nGamma values found in data: {gamma_vals}")
+        print(f"Contrast values found in data: {c_vals}")
         
-        if fig is not None:
-            save_path = os.path.join(plots_dir, f'power_spectrum_gamma_{gamma}_{gain_type}.pdf')
-            fig.savefig(save_path, dpi=400, bbox_inches='tight')
-            plt.close(fig)
-            print(f"Saved plot to: {save_path}")
-        else:
-            print(f"Failed to create plot for gamma={gamma}")
+        # Create plot for each gamma value
+        for gamma in gamma_vals:
+            print(f"\nProcessing gamma = {gamma}")
+            fig, ax = plot_power_spectra_fixed_gamma(
+                power_data=power_data,
+                c_vals=c_vals,
+                gamma=gamma,
+                param_name='gamma1'  # Explicitly set for feedback gain
+            )
+            
+            if fig is not None:
+                save_path = os.path.join(plots_dir, f'power_spectrum_{area}_{gain_type}_{gamma}.pdf')
+                fig.savefig(save_path, dpi=400, bbox_inches='tight')
+                plt.close(fig)
+                print(f"Saved plot to: {save_path}")
+            else:
+                print(f"Failed to create plot for gamma={gamma}")
+    
+    # Plot input gain beta1 data if it exists
+    gain_type = f'input_gain_beta1_{area.lower()}'
+    data_file = os.path.join(data_dir, f'power_spectra_{gain_type}.npy')
+    if os.path.exists(data_file):
+        print(f"Loading input gain beta1 data from: {data_file}")
+        power_data = np.load(data_file, allow_pickle=True).item()
+        
+        # Extract beta1 and contrast values from the data
+        beta1_vals = sorted(set(b for b, _ in power_data.keys()))
+        c_vals = sorted(set(c for _, c in power_data.keys()))
+        print(f"\nBeta1 values found in data: {beta1_vals}")
+        print(f"Contrast values found in data: {c_vals}")
+        
+        # Create plot for each beta1 value
+        for beta1 in beta1_vals:
+            print(f"\nProcessing beta1 = {beta1}")
+            fig, ax = plot_power_spectra_fixed_gamma(
+                power_data=power_data,
+                c_vals=c_vals,
+                gamma=beta1,  # Use beta1 value in place of gamma
+                param_name='beta1'  # Explicitly set for input gain beta1
+            )
+            
+            if fig is not None:
+                save_path = os.path.join(plots_dir, f'power_spectrum_{area}_{gain_type}_{beta1}.pdf')
+                fig.savefig(save_path, dpi=400, bbox_inches='tight')
+                plt.close(fig)
+                print(f"Saved plot to: {save_path}")
+            else:
+                print(f"Failed to create plot for beta1={beta1}")
 
 if __name__ == "__main__":
-    if len(sys.argv) != 2:
-        print("Usage: python Plot_PS_fixed_gamma_remove_background_noise.py /path/to/results_dir")
-        sys.exit(1)
+    parser = argparse.ArgumentParser(description='Plot power spectra for V1 or V2')
+    parser.add_argument('results_dir', help='Path to results directory')
+    parser.add_argument('--area', choices=['V1', 'V2'], default='V1',
+                      help='Brain area to plot (V1 or V2)')
+    args = parser.parse_args()
     
-    results_dir = sys.argv[1]
-    plot_power_spectra_results(results_dir)
+    plot_power_spectra_results(args.results_dir, args.area)

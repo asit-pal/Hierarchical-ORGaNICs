@@ -1,13 +1,8 @@
 # Standard library imports
-import os
 
 # Third-party library imports
-import torch
 import autograd.numpy as np
-from tqdm.notebook import tqdm
-import matplotlib.pyplot as plt
-import matplotlib.patches as mpatches
-import matplotlib.lines as mlines
+
 
 # Local imports
 from Four_neuron_model.Script_analysis.Three_area.Parameters_3 import setup_parameters

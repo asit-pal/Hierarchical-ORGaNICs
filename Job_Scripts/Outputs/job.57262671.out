@@ -1,6 +1,0 @@
-Running Power Spectra Analysis
-Plotting Power Spectra
-
-=== Starting Power Spectra Analysis for V1 ===
-Processing directory: /home/ap6603/Script_analysis/Results_3/config_53
-Error: Power spectra data file not found: /home/ap6603/Script_analysis/Results_3/config_53/Data/power_spectra_fb_gain_v1.npy

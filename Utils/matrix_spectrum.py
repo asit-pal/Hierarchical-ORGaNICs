@@ -28,7 +28,7 @@ def noise_power_spectrum(omega, sigma, tau):
     """
     #angular frequency
     # omega = 2 * np.pi * freq
-    dummy = (sigma**2) / (1 + (tau * omega)**2)
+    dummy = (sigma**2) / ((1 + (tau * omega)**2)**2)
     return dummy
 
 class matrix_solution:

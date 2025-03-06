@@ -1,25 +1,25 @@
-import os
-import sys
 import numpy as np
 import matplotlib.pyplot as plt
+import os
+import sys
 import argparse
-import matplotlib.colors as mcolors
-# from Plotting import plot_power_spectra_fixed_gamma
+# from Plotting import plot_power_spectra 
 
-def plot_fixed_gamma_power_spectra(results_dir, area='V1'):
+def plot_feedback_gain_results(results_dir, area='V1'):
     """
-    Create power spectra plots for each gamma value, showing different contrasts.
-    All power spectra are normalized by the maximum power at contrast=1 for each gamma.
+    Plot power spectra for feedback gain analysis.
     
     Args:
         results_dir (str): Path to the results directory containing data
         area (str): Brain area to plot ('V1' or 'V2')
     """
-    print(f"\n=== Starting Power Spectra Analysis for {area} ===")
-    print(f"Processing directory: {results_dir}")
-    
     # Get the data directory path
     data_dir = os.path.join(results_dir, 'Data')
+    
+    # Debug prints
+    print(f"\n=== Starting Power Spectra Analysis for {area} ===")
+    print(f"Results directory: {results_dir}")
+    print(f"Data directory: {data_dir}")
     
     # Load power spectra data from the single file
     gain_type = f'fb_gain_{area.lower()}'
@@ -53,26 +53,25 @@ def plot_fixed_gamma_power_spectra(results_dir, area='V1'):
     plots_dir = os.path.join(results_dir, 'Plots', 'Power_spectra')
     os.makedirs(plots_dir, exist_ok=True)
     
-    # Create a plot for each gamma value
-    for gamma in gamma_vals:
-        print(f"Creating plot for gamma = {gamma}")
+    # Create plots for each contrast value
+    for contrast in c_vals:
+        print(f"Creating plot for contrast = {contrast}")
         
-        # Create the plot
-        fig, ax = plot_power_spectra_fixed_gamma(
+        # Create plots
+        fig, axs = plot_power_spectra(
             normalized_power_data,
-            c_vals,
-            gamma,
-            line_width=5,
-            line_labelsize=42,
-            legendsize=42
+            gamma_vals,
+            contrast,
+            fb_gain=True,
+            input_gain_beta1=False,
+            input_gain_beta4=False
         )
         
-        # Save the plot
-        save_path = os.path.join(plots_dir, f'power_spectrum_{area}_gamma_{gamma}_{gain_type}.pdf')
+        # Save the figure
+        save_path = os.path.join(plots_dir, f'power_spectra_{area}_{gain_type}_contrast_{contrast}.pdf')
         fig.savefig(save_path, dpi=400, bbox_inches='tight')
         plt.close(fig)
         print(f"Saved plot to: {save_path}")
-        
 def plot_power_spectra_fixed_gamma(power_data, contrast_vals, gamma, line_width=5, line_labelsize=42, legendsize=42):
     """
     Plot power spectra for a fixed gamma value across different contrasts.
@@ -112,31 +111,14 @@ def plot_power_spectra_fixed_gamma(power_data, contrast_vals, gamma, line_width=
         
         ax.plot(freq, power, lw=line_width, linestyle='-', label=label, color=color)
     
-    # Add 1/f^4 reference line
-    # Create reference frequencies (avoid 0 for log scale)
-    ref_freqs = np.logspace(0, 3, 1000)  # 1 to 1000 Hz
-    
-    # Create 1/f^4 scaling
-    # Scale amplitude to be visible on the plot (adjust this value as needed)
-    scale_factor = 0.1  
-    ref_power = scale_factor * ref_freqs**(-4)
-    
-    # Plot the reference line
-    ax.plot(ref_freqs, ref_power, 'k--', lw=3, label=r'$1/f^4$')
-    
     # Fix the LaTeX formatting in labels
     ax.set_xlabel(r'$\mathrm{Frequency\;(Hz)}$', fontsize=line_labelsize)
     ax.set_ylabel(r'$\mathrm{Normalized\;V1\;Power}$', fontsize=line_labelsize)
     ax.tick_params(axis='both', which='major', labelsize=line_labelsize)
     ax.legend(fontsize=legendsize, loc='best', frameon=False, handletextpad=0.2, handlelength=1.0, labelspacing=0.2)
-    
-    # Set log scales first
+    # ax.set_xlim(0,1000)
     ax.set_yscale('log')
     ax.set_xscale('log')
-    
-    # Then set appropriate limits for log scale (can't start at 0)
-    ax.set_xlim(1, 1000)  # Changed from 0 to 1 for lower limit
-    
     # Add title showing gamma value
     ax.set_title(rf'$\gamma_1={gamma}$', fontsize=line_labelsize)
 
@@ -152,4 +134,4 @@ if __name__ == "__main__":
                       help='Brain area to plot (V1 or V2)')
     args = parser.parse_args()
     
-    plot_fixed_gamma_power_spectra(args.results_dir, args.area) 
+    plot_feedback_gain_results(args.results_dir, args.area)

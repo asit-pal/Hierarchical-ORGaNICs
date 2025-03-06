@@ -27,28 +27,47 @@ def correlation(J, L, D,bw_y1_y2=False):
     return P
 
 # def random_permutation(N1_y_idx, N2_y_idx, n_V1_s, n_V1_t, n_V2_t):
-def random_permutation(N1_y_idx: np.ndarray, N2_y_idx: np.ndarray, n_V1_s: int, n_V1_t: int, n_V2_t: int) -> None:
-
+def random_permutation(N1_y_idx, N4_y_idx, V1_s, V1_t, V4_t, ss):
     """
-    Returns the indices of the neurons randomly selected for source and target
-    (for V1 and V2).
+    Randomly select neurons for analysis, considering only those with significant activity.
+    
+    Args:
+        N1_y_idx: Indices for V1 neurons
+        N4_y_idx: Indices for V4 neurons
+        V1_s: Number of source neurons to select from V1
+        V1_t: Number of target neurons to select from V1
+        V4_t: Number of target neurons to select from V4
+        ss: Steady state values containing firing rates
     """
-
-    # Randomly select source V1 neurons
-    # a = np.arange(N1_y,2*N1_y)
-    V1s_idx = np.random.permutation(N1_y_idx)[:n_V1_s]
-
-    # Randomly select target V1 neurons. Note that these neurons are different from the source neurons.
-    # V1t_idx = np.arange(N1_y,2*N1_y)
-    # V1t_idx = np.delete(V1t_idx, V1s_idx)
-    V1t_idx = np.setdiff1d(N1_y_idx, V1s_idx)
-    V1t_idx = np.random.permutation(V1t_idx)[:n_V1_t]
-
-    # Randomly select target V2 neurons.
-    # a = np.arange(3*N1_y, 4*N1_y )
-    V2t_idx = np.random.permutation(N2_y_idx)[:n_V2_t]
-
-    return V1s_idx, V1t_idx, V2t_idx
+    # Get firing rates for V1 and V4
+    V1_rates = ss[N1_y_idx]
+    V4_rates = ss[N4_y_idx]
+    
+    # Calculate thresholds (5% of maximum)
+    # V1_threshold = 0.00005 * np.max(V1_rates)
+    # V4_threshold = 0.00005 * np.max(V4_rates)
+    V1_threshold = 0.0000 
+    V4_threshold = 0.0000
+    # V1_threshold = np.percentile(V1_rates, 70)
+    # V4_threshold = np.percentile(V4_rates, 70)
+    # Get indices of neurons above threshold
+    V1_active = N1_y_idx[V1_rates >= V1_threshold]
+    V4_active = N4_y_idx[V4_rates >= V4_threshold]
+    print(len(V1_active), len(V4_active),V1_s,V1_t,V4_t)
+    # Ensure we have enough active neurons
+    if len(V1_active) < (V1_s + V1_t) or len(V4_active) < V4_t:
+        raise ValueError("Not enough active neurons above threshold")
+    
+    # Random selection from active neurons
+    V1_perm = np.random.permutation(V1_active)
+    V4_perm = np.random.permutation(V4_active)
+    
+    # Select required numbers of neurons
+    V1s_idx = V1_perm[:V1_s]
+    V1t_idx = V1_perm[V1_s:V1_s+V1_t]
+    V4t_idx = V4_perm[:V4_t]
+    
+    return V1s_idx, V1t_idx, V4t_idx
 
 def selection_mat(Py, V1s_idx, V1t_idx, V2t_idx): 
     """
@@ -236,12 +255,13 @@ def performance(P1, P2, P3):
 #     return pred_perf, dims
 
 
-def Calculate_Pred_perf_Dim(model,gamma_vals,contrast_vals,fb_gain,input_gain_beta1,input_gain_beta4,delta_tau,noise_potential,noise_firing_rate,GR_noise,method,com_params,t_span=[0,6]):
+def Calculate_Pred_perf_Dim(model, gamma_vals, contrast_vals, fb_gain, input_gain_beta1, input_gain_beta4, delta_tau, noise_potential, noise_firing_rate, GR_noise, method, com_params, t_span=[0,6]):
     N = model.params['N']
     params = model.params
     initial_conditions = np.ones((model.num_var * N)) * 0.01
     performance_data = {}
     covariance_data = {}
+    
     for contrast in tqdm(contrast_vals):
         for gamma in tqdm(gamma_vals):
             updated_params = copy.deepcopy(params)
@@ -254,30 +274,36 @@ def Calculate_Pred_perf_Dim(model,gamma_vals,contrast_vals,fb_gain,input_gain_be
             
             updated_model = copy.deepcopy(model)
             updated_model.params = updated_params
-        
-        
-            perf_V1 = np.zeros((com_params['num_trials'], com_params['V1_t']))
-            perf_V4 = np.zeros((com_params['num_trials'], com_params['V4_t']))
-            # Get Jacobian
-            J, ss = updated_model.get_Jacobian( contrast,initial_conditions, method, t_span)
+            
+            # Get Jacobian and steady state
+            J, ss = updated_model.get_Jacobian(contrast, initial_conditions, method, t_span)
             J = torch.tensor(J, dtype=torch.float32)
+            
             # Create S and L matrices
             S = create_S_matrix(updated_model)
             D = S**2
             L = create_L_matrix(updated_model, ss, delta_tau, noise_potential, noise_firing_rate, GR_noise)
-
+            
             # Compute correlation matrices
             Py = correlation(J, L, D, com_params['bw_y1_y4'])
+            # # Upscale the correlation matrix
+            # Py = Py * 0.10
+            perf_V1 = np.zeros((com_params['num_trials'], com_params['V1_t']))
+            perf_V4 = np.zeros((com_params['num_trials'], com_params['V4_t']))
             
-            # Add sigma^2/2*tau to the diagonal of Py
-
-
             for kl in range(com_params['num_trials']):
-                V1s_idx, V1t_idx, V4t_idx = random_permutation(com_params['N1_y_idx'], com_params['N4_y_idx'], com_params['V1_s'],com_params['V1_t'],com_params['V4_t'])
+                V1s_idx, V1t_idx, V4t_idx = random_permutation(
+                    com_params['N1_y_idx'], 
+                    com_params['N4_y_idx'], 
+                    com_params['V1_s'],
+                    com_params['V1_t'],
+                    com_params['V4_t'],
+                    ss  # Pass steady state to random_permutation
+                )
                 dims_V1, dims_V4, perf_V1[kl, :], perf_V4[kl, :] = analysis_ss(Py, V1s_idx, V1t_idx, V4t_idx)
-                
-            # Store performance data in the dictionary
-            performance_data[gamma,contrast] = {
+            
+            # Store performance data
+            performance_data[gamma, contrast] = {
                 'V1': {
                     'mean': np.mean(perf_V1, axis=0),
                     'std': np.std(perf_V1, axis=0),
@@ -289,11 +315,11 @@ def Calculate_Pred_perf_Dim(model,gamma_vals,contrast_vals,fb_gain,input_gain_be
                     'dims': dims_V4
                 }
             }
-            covariance_data[gamma,contrast] = Py
-
+            covariance_data[gamma, contrast] = Py
+    
     return performance_data, covariance_data
 
-def Calculate_Covariance_mean(model,gamma_vals,contrast,g,fb_gain,input_gain_beta1,input_gain_beta4,method,com_params,delta_tau,noise,t_span=[0,6]):
+def Calculate_Covariance_mean(model,gamma_vals,contrast,g,fb_gain,input_gain_beta1,input_gain_beta4,method,com_params,delta_tau,noise_potential,noise_firing_rate,GR_noise,t_span=[0,6]):
     N = model.params['N']
     initial_conditions = np.ones((model.num_var * N)) * 0.01
     
@@ -308,19 +334,16 @@ def Calculate_Covariance_mean(model,gamma_vals,contrast,g,fb_gain,input_gain_bet
         
         updated_model.params['g1'] = g
         
-        # perf_V1 = np.zeros((com_params['num_trials'], com_params['V1_t']))
-        # perf_V4 = np.zeros((com_params['num_trials'], com_params['V4_t']))
         # Get Jacobian
-        J, ss = updated_model.get_Jacobian( contrast,initial_conditions, method, t_span)
+        J, ss = updated_model.get_Jacobian(contrast,initial_conditions, method, t_span)
         
         # Create S and L matrices
         S = create_S_matrix(updated_model)
         D = S**2
-        L = create_L_matrix(updated_model, ss, delta_tau, noise)
+        L = create_L_matrix(updated_model, ss, delta_tau, noise_potential, noise_firing_rate, GR_noise)
 
         # Compute correlation matrices
         Py = correlation(J, L, D, com_params['bw_y1_y4'])
-
 
     return Py,ss
 
@@ -362,7 +385,7 @@ def calculate_pred_performance_freq(model, gamma_vals, contrast,g,fb_gain,input_
         S_fij = 2 * torch.real(S_fij)  # Take the real part of the spectral matrix
 
         for kl in range(com_params['num_trials']):
-            V1s_idx, V1t_idx, V4t_idx = random_permutation(com_params['N1_y_idx'], com_params['N4_y_idx'], com_params['V1_s'], com_params['V1_t'], com_params['V4_t'])
+            V1s_idx, V1t_idx, V4t_idx = random_permutation(com_params['N1_y_idx'], com_params['N4_y_idx'], com_params['V1_s'], com_params['V1_t'], com_params['V4_t'], ss)
             # Perform analysis for each frequency
             for f_idx, _ in enumerate(freq):
                 Py = S_fij[f_idx].cpu().numpy()  # Convert to numpy array
@@ -472,7 +495,7 @@ def calculate_dim_vs_freq(model, gamma_vals, contrast,g,fb_gain,input_gain_beta1
         S_fij = 2 * torch.real(S_fij)  # Take the real part of the spectral matrix
 
         for kl in range(com_params['num_trials']):
-            V1s_idx, V1t_idx, V4t_idx = random_permutation(com_params['N1_y_idx'], com_params['N4_y_idx'], com_params['V1_s'], com_params['V1_t'], com_params['V4_t'])
+            V1s_idx, V1t_idx, V4t_idx = random_permutation(com_params['N1_y_idx'], com_params['N4_y_idx'], com_params['V1_s'], com_params['V1_t'], com_params['V4_t'], ss)
             # Perform analysis for each frequency
             for f_idx, _ in enumerate(freq):
                 Py = S_fij[f_idx].cpu().numpy()  # Convert to numpy array

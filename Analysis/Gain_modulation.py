@@ -59,7 +59,7 @@ def main(config_file):
         save_steady_states(steady_states, data_dir, gain_type)
     
     if config['Gain_modulation']['Input_gain_beta1']['enabled']:
-        gain_type = 'input_beta1_gain'
+        gain_type = 'input_gain_beta1'
         beta1_vals = config['Gain_modulation']['Input_gain_beta1']['beta1_vals']
         steady_states = Contrast_response_curve(
             model=Ring_Model,
