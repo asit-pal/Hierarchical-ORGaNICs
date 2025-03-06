@@ -16,6 +16,9 @@ def main(config_file):
     print(f"Current working directory: {os.getcwd()}")
     print(f"Attempting to load config from: {config_file}")
     
+    # Set random seed for reproducibility
+    np.random.seed(123)
+    
     # Load config from yaml file
     try:
         with open(config_file, 'r') as f:
@@ -38,14 +41,11 @@ def main(config_file):
         config=config,
         tau=1e-3,  # default value
         tauPlus=1e-3,
-        N=72       # default value
+        N=36*2       # default value
     )
     # Initialize model
     Ring_Model = RingModel(params, simulate_firing_rates=True)
     
-    # Initialize initial conditions
-    # initial_conditions = np.ones((Ring_Model.num_var * params['N'])) * 0.01
-
     # Set up indices based on simulation type
     N = params['N']
     if Ring_Model.simulate_firing_rates:
@@ -56,16 +56,22 @@ def main(config_file):
         N1_y = np.arange(0*N, N)    # index for y1
         N4_y = np.arange(1*N, 2*N)  # index for y4
         bw_y1_y4 = True
+
+    # Initialize initial conditions for steady state calculation
+    initial_conditions = np.ones((Ring_Model.num_var * params['N'])) * 0.01
+
     # Analysis parameters using exact config structure
     # Communication subspace parameters
-    com_params = {'num_trials':250,
-                'tol':5e-2,
-                'V1_s':36,
-                'V1_t':36,
-                'V4_t':36,
-                'N1_y_idx':N1_y,
-                'N4_y_idx':N4_y,
-                'bw_y1_y4':bw_y1_y4} # is it between potential or firing rates?
+    com_params = {
+        'num_trials': 200,
+        # 'tol': 5e-2,
+        'V1_s': 30,
+        'V1_t': 30,
+        'V4_t': 30,
+        'N1_y_idx': N1_y,
+        'N4_y_idx': N4_y,
+        'bw_y1_y4': bw_y1_y4,  # is it between potential or firing rates?
+    }
 
     # Run analyses based on config
     if config['Communication']['Feedback_gain']['enabled']:
@@ -88,12 +94,12 @@ def main(config_file):
             t_span=config['Communication']['Feedback_gain']['t_span']
         )
         save_communication_data(Communication_data, data_dir, gain_type)
-        save_covariance_data(covariance_data, data_dir, gain_type)
+        # save_covariance_data(covariance_data, data_dir, gain_type)
     if config['Communication']['Input_gain_beta1']['enabled']:
-        gain_type = 'input_beta1_gain'
+        gain_type = 'input_gain_beta1'
         contrast_vals = config['Communication']['Input_gain_beta1']['c_vals']
         beta1_vals = config['Communication']['Input_gain_beta1']['beta1_vals']
-        Communication_data = Calculate_Pred_perf_Dim(
+        Communication_data, covariance_data = Calculate_Pred_perf_Dim(
             Ring_Model,
             beta1_vals,
             contrast_vals,
@@ -110,6 +116,8 @@ def main(config_file):
         )
 
         save_communication_data(Communication_data, data_dir, gain_type)
+        # Uncomment if you want to save covariance data
+        # save_covariance_data(covariance_data, data_dir, gain_type)
 
 def save_communication_data(Communication_data, data_dir, gain_type):
     """

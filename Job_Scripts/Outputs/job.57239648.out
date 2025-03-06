@@ -1,21 +1,0 @@
-/opt/slurm/data/slurmd/job57239648/slurm_script: line 28: warning: here-document at line 18 delimited by end-of-file (wanted `EOF')
-Running Communication Analysis
-Current working directory: /home/ap6603/Script_analysis
-Attempting to load config from: /home/ap6603/Script_analysis/Results_3/config_70/config_70.yaml
-  0%|          | 0/1 [00:00<?, ?it/s]
-  0%|          | 0/2 [00:00<?, ?it/s][A
- 50%|█████     | 1/2 [00:14<00:14, 14.98s/it][A
-100%|██████████| 2/2 [00:27<00:00, 13.67s/it][A100%|██████████| 2/2 [00:27<00:00, 13.87s/it]
-100%|██████████| 1/1 [00:27<00:00, 27.74s/it]100%|██████████| 1/1 [00:27<00:00, 27.74s/it]
-Saved all communication data to: /home/ap6603/Script_analysis/Results_3/config_70/Data/Communication_data_input_gain_beta1_all.npy
-Plotting Communication Analysis
-Processing results from: /home/ap6603/Script_analysis/Results_3/config_70
-Results directory: /home/ap6603/Script_analysis/Results_3/config_70
-Data directory: /home/ap6603/Script_analysis/Results_3/config_70/Data
-Loading input gain beta1 data from: /home/ap6603/Script_analysis/Results_3/config_70/Data/Communication_data_input_gain_beta1_all.npy
-
-Beta1 values found in data: [0.5, 1.0]
-Contrast values found in data: [1.0]
-Creating input gain beta1 plot for contrast = 1.0
-Saved plot to: /home/ap6603/Script_analysis/Results_3/config_70/Plots/Communication/Communication_analysis_input_gain_beta1_contrast_1.0.pdf
-/bin/bash: line 10: EOF: command not found

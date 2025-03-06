@@ -1,21 +1,0 @@
-/opt/slurm/data/slurmd/job57238483/slurm_script: line 28: warning: here-document at line 18 delimited by end-of-file (wanted `EOF')
-Running Communication Analysis
-Current working directory: /home/ap6603/Script_analysis
-Attempting to load config from: /home/ap6603/Script_analysis/Results_3/config_68/config_68.yaml
-  0%|          | 0/1 [00:00<?, ?it/s]
-  0%|          | 0/2 [00:00<?, ?it/s][A
- 50%|█████     | 1/2 [00:13<00:13, 13.16s/it][A
-100%|██████████| 2/2 [00:26<00:00, 13.08s/it][A100%|██████████| 2/2 [00:26<00:00, 13.09s/it]
-100%|██████████| 1/1 [00:26<00:00, 26.19s/it]100%|██████████| 1/1 [00:26<00:00, 26.19s/it]
-Saved all communication data to: /home/ap6603/Script_analysis/Results_3/config_68/Data/Communication_data_fb_gain_all.npy
-Plotting Communication Analysis
-Processing results from: /home/ap6603/Script_analysis/Results_3/config_68
-Results directory: /home/ap6603/Script_analysis/Results_3/config_68
-Data directory: /home/ap6603/Script_analysis/Results_3/config_68/Data
-Loading communication data from: /home/ap6603/Script_analysis/Results_3/config_68/Data/Communication_data_fb_gain_all.npy
-
-Gamma values found in data: [0.5, 1.0]
-Contrast values found in data: [1.0]
-Creating plot for contrast = 1.0
-Saved plot to: /home/ap6603/Script_analysis/Results_3/config_68/Plots/Communication/Communication_analysis_fb_gain_contrast_1.0_gamma_1.0.pdf
-/bin/bash: line 10: EOF: command not found

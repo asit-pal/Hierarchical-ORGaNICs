@@ -143,18 +143,19 @@ def plot_coherence_data(coherence_data, gamma_vals, contrast, fb_gain, input_gai
     
     return fig, ax
 
-def plot_coherence_data_fixed_gamma(coherence_data, contrast_vals, gamma, line_width=5, line_labelsize=42, legendsize=42):
+def plot_coherence_data_fixed_gamma(coherence_data, contrast_vals, gamma, line_width=5, line_labelsize=42, legendsize=42, param_name='gamma1'):
     """
-    Plot coherence for a fixed gamma value across different contrasts.
+    Plot coherence for a fixed gamma/beta1 value across different contrasts.
     Uses linear scales for both axes.
     
     Args:
         coherence_data (dict): Dictionary containing coherence data
         contrast_vals (list): List of contrast values to plot
-        gamma (float): The gamma value to plot
+        gamma (float): The gamma/beta1 value to plot
         line_width (int): Width of plotted lines
         line_labelsize (int): Size of axis labels
         legendsize (int): Size of legend text
+        param_name (str): Parameter name ('gamma1' or 'beta1')
     """
     fig, ax = plt.subplots(figsize=(14, 10))
     
@@ -167,7 +168,7 @@ def plot_coherence_data_fixed_gamma(coherence_data, contrast_vals, gamma, line_w
     for contrast in contrast_vals:
         key = (gamma, contrast)
         if key not in coherence_data:
-            print(f"Warning: No coherence data found for contrast = {contrast} and gamma = {gamma}")
+            print(f"Warning: No coherence data found for contrast = {contrast} and {param_name} = {gamma}")
             continue
             
         data = coherence_data[key]
@@ -201,8 +202,9 @@ def plot_coherence_data_fixed_gamma(coherence_data, contrast_vals, gamma, line_w
     # Add grid
     ax.grid(True, linestyle='--', alpha=0.7)
     
-    # Add title showing gamma value
-    ax.set_title(rf'$\gamma_1={gamma}$', fontsize=line_labelsize)
+    # Add title showing parameter value with appropriate symbol
+    symbol = r'$\gamma_1$' if param_name == 'gamma1' else r'$\beta_1$'
+    ax.set_title(f'{symbol}={gamma}', fontsize=line_labelsize)
 
     # Use manual adjustment instead of tight_layout
     plt.subplots_adjust(left=0.15, right=0.95, top=0.95, bottom=0.15)
@@ -253,7 +255,7 @@ def plot_power_spectra_fixed_gamma(power_data, contrast_vals, gamma, line_width=
     ax.set_ylabel(r'$\mathrm{Normalized\;V1\;Power}$', fontsize=line_labelsize)
     ax.tick_params(axis='both', which='major', labelsize=line_labelsize)
     ax.legend(fontsize=legendsize, loc='best', frameon=False, handletextpad=0.2, handlelength=1.0, labelspacing=0.2)
-    # ax.set_xlim(0,100)
+    ax.set_xlim(0,1000)
     ax.set_yscale('log')
     ax.set_xscale('log')
     # Add title showing gamma value
@@ -330,10 +332,10 @@ def plot_power_spectra(power_data, gamma_vals, contrast, fb_gain, input_gain_bet
 #         V4_mean = np.abs(data['V4']['mean'])
 #         V4_std = np.abs(data['V4']['std'])
 
-#         # Fill between for V1 data
-#         ax.fill_between(frequencies, V1_mean - V1_std, V1_mean + V1_std, color=color, alpha=0.2)
-#         ax.plot(frequencies, V1_mean, marker='x', linestyle='-', markersize=12, markeredgewidth=3, 
-#                 markeredgecolor='black', markerfacecolor='white', color=color)
+#         # # Fill between for V1 data
+#         # ax.fill_between(frequencies, V1_mean - V1_std, V1_mean + V1_std, color=color, alpha=0.2)
+#         # ax.plot(frequencies, V1_mean, marker='x', linestyle='-', markersize=12, markeredgewidth=3, 
+#         #         markeredgecolor='black', markerfacecolor='white', color=color)
 
 #         # Fill between for V4 data
 #         ax.fill_between(frequencies, V4_mean - V4_std, V4_mean + V4_std, color=color, alpha=0.2)
@@ -357,8 +359,8 @@ def plot_power_spectra(power_data, gamma_vals, contrast, fb_gain, input_gain_bet
 #     marker_legend = [
 #         mlines.Line2D([0], [0], color='red', marker='o', linestyle='None', markersize=10, 
 #                       label=r'$\textnormal{V1-V4}$', markeredgewidth=3, markerfacecolor='white'),
-#         mlines.Line2D([0], [0], color='black', marker='x', linestyle='None', markersize=10, 
-#                       label=r'$\textnormal{V1-V1}$', markeredgewidth=3, markerfacecolor='white'),
+#         # mlines.Line2D([0], [0], color='black', marker='x', linestyle='None', markersize=10, 
+#         #               label=r'$\textnormal{V1-V1}$', markeredgewidth=3, markerfacecolor='white'),
 #     ]
 #     legend2 = ax.legend(handles=marker_legend, loc='upper right', bbox_to_anchor=(0.48, 1.0), 
 #                         fontsize=legendsize, frameon=False, handletextpad=-0.2, labelspacing=0.15)

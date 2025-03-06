@@ -55,16 +55,68 @@ def Calculate_coherence(model, i, j, fb_gain, input_gain_beta1, input_gain_beta4
 
     return coherence_data
 
-def Calculate_power_spectra(model, i, fb_gain, input_gain_beta1, input_gain_beta4, delta_tau, noise_potential, noise_firing_rate, GR_noise, low_pass_add, noise_sigma, noise_tau, contrast_vals, method, gamma_vals, min_freq=0.1, max_freq=200, n_freq_mat=500, t_span=[0, 6]):
+# def Calculate_power_spectra(model, i, fb_gain, input_gain_beta1, input_gain_beta4, delta_tau, noise_potential, noise_firing_rate, GR_noise, low_pass_add, noise_sigma, noise_tau, contrast_vals, method, gamma_vals,tau_f, min_freq=0.1, max_freq=200, n_freq_mat=500, t_span=[0, 6]):
+#     """
+#     Calculate power spectra for all combinations of gamma and contrast values.
+#     Saves all data in a single file.
+#     """
+#     freq_mat = torch.logspace(np.log10(min_freq), np.log10(max_freq), n_freq_mat)
+#     params = model.params
+#     initial_conditions = np.ones((model.num_var * params['N'])) * 0.01
+#     S = create_S_matrix(model) # Just the timescales
+
+#     power_data = {}
+
+#     for contrast in tqdm(contrast_vals, desc='Contrast'):
+#         for gamma in tqdm(gamma_vals, desc=f'Gamma (c={contrast})', leave=False):
+#             updated_params = copy.deepcopy(params)
+#             if fb_gain:
+#                 updated_params['gamma1'] = gamma
+#             if input_gain_beta1:
+#                 updated_params['beta1'] = gamma
+#             if input_gain_beta4:
+#                 updated_params['beta4'] = gamma
+           
+#             # Create a copy of the model with updated parameters
+#             updated_model = copy.deepcopy(model)
+#             updated_model.params = updated_params 
+
+#             # Get Jacobian
+#             J, ss = updated_model.get_Jacobian(contrast, initial_conditions, method, t_span)
+#             J = torch.tensor(J, dtype=torch.float32)
+#             # Create L matrix
+#             L = create_L_matrix(updated_model, ss, delta_tau, noise_potential, noise_firing_rate, GR_noise)
+
+#             # Calculate coherence
+#             mat_model = matrix_solution(J, L, S, noise_sigma, noise_tau, low_pass_add=low_pass_add)
+#             power_matrix, _ = mat_model.auto_spectrum(i=i, freq=freq_mat)
+            
+#             # if low_pass:
+#             #     noise_power = noise_power_spectrum(freq_mat,sigma=0.05,tau=300*1e-3)
+#             #     power_matrix = power_matrix + noise_power
+                   
+
+#             # Store data with (gamma, contrast) tuple as key
+#             key = (gamma, contrast)
+#             power_data[key] = {
+#                 'freq': freq_mat.numpy(),
+#                 'power': np.abs(power_matrix.numpy())
+#             }
+
+#     return power_data
+
+def Calculate_power_spectra(model, i, fb_gain, input_gain_beta1, input_gain_beta4, delta_tau, 
+                          noise_potential, noise_firing_rate, GR_noise, low_pass_add, 
+                          noise_sigma, noise_tau, contrast_vals, method, gamma_vals, 
+                          tau_f, sigma_f, min_freq=None, max_freq=None, n_freq_mat=None, t_span=None):
     """
     Calculate power spectra for all combinations of gamma and contrast values.
-    Saves all data in a single file.
+    Now uses frequency-dependent S matrix for filtering.
     """
     freq_mat = torch.logspace(np.log10(min_freq), np.log10(max_freq), n_freq_mat)
     params = model.params
     initial_conditions = np.ones((model.num_var * params['N'])) * 0.01
-    S = create_S_matrix(model) # Just the timescales
-
+    
     power_data = {}
 
     for contrast in tqdm(contrast_vals, desc='Contrast'):
@@ -84,17 +136,22 @@ def Calculate_power_spectra(model, i, fb_gain, input_gain_beta1, input_gain_beta
             # Get Jacobian
             J, ss = updated_model.get_Jacobian(contrast, initial_conditions, method, t_span)
             J = torch.tensor(J, dtype=torch.float32)
-            # Create L matrix
+            
+            # Create L matrix (unchanged)
             L = create_L_matrix(updated_model, ss, delta_tau, noise_potential, noise_firing_rate, GR_noise)
 
-            # Calculate coherence
-            mat_model = matrix_solution(J, L, S, noise_sigma, noise_tau, low_pass_add=low_pass_add)
-            power_matrix, _ = mat_model.auto_spectrum(i=i, freq=freq_mat)
-            
-            # if low_pass:
-            #     noise_power = noise_power_spectrum(freq_mat,sigma=0.05,tau=300*1e-3)
-            #     power_matrix = power_matrix + noise_power
-                   
+            # Initialize power matrix for this gamma/contrast combination
+            power_matrix = torch.zeros_like(freq_mat)
+
+            # Calculate power spectrum for each frequency
+            for f_idx, freq in enumerate(freq_mat):
+                # Create frequency-dependent S matrix
+                S = create_S_matrix_filtered(updated_model, freq.item(), tau_f,sigma_f)
+                
+                # Calculate coherence for this frequency
+                mat_model = matrix_solution(J, L, S, noise_sigma, noise_tau, low_pass_add=low_pass_add)
+                power_at_freq, _ = mat_model.auto_spectrum(i=i, freq=freq.unsqueeze(0))
+                power_matrix[f_idx] = power_at_freq
 
             # Store data with (gamma, contrast) tuple as key
             key = (gamma, contrast)
@@ -333,6 +390,32 @@ def create_S_matrix(model):
     
     S = np.diag(S_diag)
     return torch.tensor(S, dtype=torch.float32)
+
+def create_S_matrix_filtered(model, freq, tau_f,sigma_f):
+    """
+    Create S matrix with frequency-dependent filtering
+    Args:
+        model: RingModel instance
+        freq: frequency for filtering (in Hz)
+        tau_f: filtering time scale (in seconds)
+    Returns:
+        S: Torch tensor containing the frequency-dependent noise spectrum
+    """
+    N = model.params['N']
+    
+    # Calculate frequency-dependent filtering
+    omega = 2 * np.pi * freq  # Convert to angular frequency
+    filter_factor = sigma_f * np.sqrt((1/tau_f) * (1 / (1 + (omega * tau_f)**2)))
+    
+    if model.simulate_firing_rates:
+        # Create base S matrix with filtering
+        S_vec = np.ones(N) * filter_factor
+        # Repeat for all variables in the model
+        S = np.concatenate([S_vec] * model.jacobian_dimension)
+    else:
+        S = np.ones(N * model.jacobian_dimension) * filter_factor
+    
+    return torch.tensor(np.diag(S), dtype=torch.float32)
 
 
 

@@ -1,6 +1,7 @@
 # Essential imports
 import os
 import sys
+import argparse
 
 # Add project root to Python path
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -10,9 +11,16 @@ import yaml
 import numpy as np
 from Utils.Create_weight_matrices import setup_parameters
 from Models.Model import RingModel
-from Utils.Coherence import Calculate_power_spectra
+from Utils.Coherence import Calculate_power_spectra, create_S_matrix_filtered, create_L_matrix
 
-def main(config_file):
+def main(config_file, area='V1'):
+    """
+    Main function to analyze power spectra.
+    Args:
+        config_file (str): Path to config file
+        area (str): Brain area to analyze ('V1' or 'V2')
+    """
+    print(f"Analyzing {area} power spectra")
     print(f"Current working directory: {os.getcwd()}")
     print(f"Attempting to load config from: {config_file}")
     
@@ -45,11 +53,18 @@ def main(config_file):
     
     # Analysis parameters
     N = params['N']
-    i = int(N / 2)  # y1 LFP power index
+    
+    # Select index based on area
+    if area.upper() == 'V1':
+        i = int(N / 2)  # y1 LFP power index
+    elif area.upper() == 'V2':
+        i = int(2*N) + int(N/2)  # y2 LFP power index
+    else:
+        raise ValueError(f"Invalid area: {area}. Must be 'V1' or 'V2'")
     
     # Run analyses based on config
     if config['Power_spectra']['Feedback_gain']['enabled']:
-        gain_type = 'fb_gain'
+        gain_type = f'fb_gain_{area.lower()}'  # Add area to filename
         contrast_vals = config['Power_spectra']['Feedback_gain']['c_vals']
         gamma_vals = config['Power_spectra']['Feedback_gain']['gamma_vals']
         Power_data = Calculate_power_spectra(
@@ -68,8 +83,10 @@ def main(config_file):
             contrast_vals=contrast_vals,
             method='RK45',
             gamma_vals=gamma_vals,
+            tau_f = config['noise_params']['tau_f'],
+            sigma_f = config['noise_params']['sigma_f'],
             min_freq=1,
-            max_freq=200,
+            max_freq=1000,
             n_freq_mat=500,
             t_span=[0, 6],
         )
@@ -77,7 +94,7 @@ def main(config_file):
         save_power_spectra(Power_data, data_dir, gain_type)
     
     if config['Power_spectra']['Input_gain_beta1']['enabled']:
-        gain_type = 'input_beta1_gain'
+        gain_type = f'input_gain_beta1_{area.lower()}'  # Add area to filename
         contrast_vals = config['Power_spectra']['Input_gain_beta1']['c_vals']
         beta1_vals = config['Power_spectra']['Input_gain_beta1']['beta1_vals']
         Power_data = Calculate_power_spectra(
@@ -90,16 +107,18 @@ def main(config_file):
             noise_potential=config['noise_params']['noise_potential'],
             noise_firing_rate=config['noise_params']['noise_firing_rate'],
             GR_noise=config['noise_params']['GR_noise'],
-            low_pass=config['noise_params']['low_pass'],
+            low_pass_add=config['noise_params']['low_pass_add'],
             noise_sigma=config['noise_params']['noise_sigma'],
             noise_tau=config['noise_params']['noise_tau'],
             contrast_vals=contrast_vals,
             method='RK45',
-            beta1_vals=beta1_vals,
+            gamma_vals=beta1_vals,
+            tau_f = config['noise_params']['tau_f'],
             min_freq=1,
-            max_freq=200,
+            max_freq=1000,
             n_freq_mat=500,
             t_span=[0, 6],
+            
         )
         save_power_spectra(Power_data, data_dir, gain_type)
     
@@ -116,18 +135,18 @@ def save_power_spectra(power_data, data_dir, gain_type):
     os.makedirs(data_dir, exist_ok=True)
     
     # Save all data to a single file
-    filename = f'power_spectra_{gain_type}_all.npy'
+    filename = f'power_spectra_{gain_type}.npy'
     filepath = os.path.join(data_dir, filename)
     np.save(filepath, power_data)
-    print(f"Saved all power spectra data to: {filepath}")
+    print(f"Saved power spectra data to: {filepath}")
 
 if __name__ == "__main__":
-    if len(sys.argv) != 2:
-        print("Usage: python Power_spectra.py path/to/config.yaml")
-        print(f"Arguments received: {sys.argv}")
-        sys.exit(1)
+    parser = argparse.ArgumentParser(description='Analyze power spectra for V1 or V2')
+    parser.add_argument('config_file', help='Path to config file')
+    parser.add_argument('--area', choices=['V1', 'V2'], default='V1',
+                      help='Brain area to analyze (V1 or V2)')
+    args = parser.parse_args()
     
-    config_file = sys.argv[1]
-    main(config_file)  # Pass the config_file to main
+    main(args.config_file, args.area)
 
 
