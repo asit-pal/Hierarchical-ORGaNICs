@@ -39,7 +39,7 @@ def plot_fixed_gamma_power_spectra(results_dir, area='V1'):
     
     # Find normalization factor (maximum power at contrast=1)
     norm_factor = max(np.max(power_data[key]['power']) for key in power_data.keys())
-    print(f"Global normalization factor (max power at c=1): {norm_factor}")
+    print(f"Global normalization factor: {norm_factor}")
     
     # Normalize all power data by this single factor
     normalized_power_data = {}

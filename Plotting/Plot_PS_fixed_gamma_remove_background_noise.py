@@ -65,37 +65,37 @@ def plot_power_spectra_fixed_gamma(power_data, c_vals, gamma, line_width=5, line
     colors = truncated_viridis(np.linspace(0, 1, len(c_vals)))
     
     # Get frequency array (same for all contrasts)
-    first_key = (gamma, c_vals[0])
+    first_key = (gamma, np.min(c_vals))
     if first_key not in power_data:
         print(f"Error: Data not found for {param_name}={gamma}, contrast={c_vals[0]}")
         return None, None
     
     freq = power_data[first_key]['freq']
     
-    # Calculate average power spectrum across all contrasts
-    power_sum = np.zeros_like(power_data[first_key]['power'])
-    valid_contrasts = 0
+    # # Calculate average power spectrum across all contrasts
+    # power_sum = np.zeros_like(power_data[first_key]['power'])
+    # valid_contrasts = 0
     
-    for c in c_vals:
-        key = (gamma, c)
-        if key in power_data:
-            power_sum += power_data[key]['power']
-            valid_contrasts += 1
+    # for c in c_vals:
+    #     key = (gamma, c)
+    #     if key in power_data:
+    #         power_sum += power_data[key]['power']
+    #         valid_contrasts += 1
     
-    if valid_contrasts == 0:
-        print("Error: No valid data found for any contrast value")
-        return None, None
+    # if valid_contrasts == 0:
+    #     print("Error: No valid data found for any contrast value")
+    #     return None, None
     
-    power_avg = power_sum / valid_contrasts
+    # power_avg = power_sum / valid_contrasts
     
     # Fit background using average power spectrum
-    params = fit_background_noise(freq, power_avg)
-    if params is None:
-        print("Error: Failed to fit background noise")
-        return None, None
+    # params = fit_background_noise(freq, power_avg)
+    # if params is None:
+    #     print("Error: Failed to fit background noise")
+    #     return None, None
         
-    background = generate_background(freq, params)
-    
+    # background = generate_background(freq, params)
+    background = power_data[first_key]['power']
     # Store normalized powers for y-axis limits
     all_normalized_powers = []
     

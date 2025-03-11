@@ -32,16 +32,16 @@ export RESULTS_DIR
 echo "Submitting analysis jobs for config ${CONFIG_NUM}"
 
 # # Submit power spectra analysis (use full path)
-# power_analysis_job=$(sbatch ${JOB_SCRIPTS_DIR}/power_analysis_job.sbatch)
-# echo "Submitted power spectra analysis job: ${power_analysis_job}"
+power_analysis_job=$(sbatch ${JOB_SCRIPTS_DIR}/power_analysis_job.sbatch)
+echo "Submitted power spectra analysis job: ${power_analysis_job}"
 
 # # Submit coherence analysis
 # coherence_job=$(sbatch ${JOB_SCRIPTS_DIR}/coherence_analysis_job.sbatch)
 # echo "Submitted coherence analysis job: ${coherence_job}"
 
 # Submit communication analysis
-comm_job=$(sbatch ${JOB_SCRIPTS_DIR}/communication_analysis_job.sbatch)
-echo "Submitted communication analysis job: ${comm_job}"
+# comm_job=$(sbatch ${JOB_SCRIPTS_DIR}/communication_analysis_job.sbatch)
+# echo "Submitted communication analysis job: ${comm_job}"
 
 # # Submit gain modulation analysis
 # gain_mod_job=$(sbatch ${JOB_SCRIPTS_DIR}/gain_modulation_job.sbatch)

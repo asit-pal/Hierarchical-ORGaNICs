@@ -133,6 +133,7 @@ def setup_parameters(config, tau=1e-3, kernel=None, N=36, M=None, tauPlus=1*1e-3
         'tauBeta1': tau, 'tauBeta4': tau,
         'tauGamma1': tau, 'tauGamma4': tau,
         'tau': tau, 'tauPlus': tauPlus,
+        'tauF1': 1*tau, 'tauF4': 1*tau,
         'sigma1': config['model_params']['sigma1'], 'sigma4': config['model_params']['sigma4'],
         'dt': tauPlus/3,
         'W11': W11, 'W44': W44,

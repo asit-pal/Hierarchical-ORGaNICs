@@ -11,7 +11,7 @@ import yaml
 import numpy as np
 from Utils.Create_weight_matrices import setup_parameters
 from Models.Model import RingModel
-from Utils.Coherence import Calculate_power_spectra, create_S_matrix_filtered, create_L_matrix
+from Utils.Coherence import Calculate_power_spectra
 
 def main(config_file, area='V1'):
     """
@@ -76,6 +76,7 @@ def main(config_file, area='V1'):
             delta_tau=config['noise_params']['delta_tau'] * Ring_Model.params['tau'],
             noise_potential=config['noise_params']['noise_potential'],
             noise_firing_rate=config['noise_params']['noise_firing_rate'],
+            sigma_f=config['noise_params']['sigma_f'],
             GR_noise=config['noise_params']['GR_noise'],
             low_pass_add=config['noise_params']['low_pass_add'],
             noise_sigma=config['noise_params']['noise_sigma'],
@@ -83,8 +84,6 @@ def main(config_file, area='V1'):
             contrast_vals=contrast_vals,
             method='RK45',
             gamma_vals=gamma_vals,
-            tau_f = config['noise_params']['tau_f'],
-            sigma_f = config['noise_params']['sigma_f'],
             min_freq=1,
             max_freq=1000,
             n_freq_mat=500,
@@ -106,6 +105,7 @@ def main(config_file, area='V1'):
             delta_tau=config['noise_params']['delta_tau'] * Ring_Model.params['tau'],
             noise_potential=config['noise_params']['noise_potential'],
             noise_firing_rate=config['noise_params']['noise_firing_rate'],
+            sigma_f=config['noise_params']['sigma_f'],
             GR_noise=config['noise_params']['GR_noise'],
             low_pass_add=config['noise_params']['low_pass_add'],
             noise_sigma=config['noise_params']['noise_sigma'],
@@ -113,7 +113,6 @@ def main(config_file, area='V1'):
             contrast_vals=contrast_vals,
             method='RK45',
             gamma_vals=beta1_vals,
-            tau_f = config['noise_params']['tau_f'],
             min_freq=1,
             max_freq=1000,
             n_freq_mat=500,

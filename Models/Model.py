@@ -25,13 +25,14 @@ class RingModel:
         self.target_angle = target_angle
         num_neurons_per_area = 4
         num_area =2
+        num_filtered_vars = 4  # fy, fp, fu, fs for each area
         if self.simulate_firing_rates:
-            self.num_var = num_area * 2 * num_neurons_per_area + 2* num_area  # 20 variables 
-            self.jacobian_dimension = num_area * 2 * num_neurons_per_area  # We have to remove the input gain, feedback gain neurons and their corresponding firing rates from the Jacobian
+            self.num_var = num_area * (2 * num_neurons_per_area + num_filtered_vars + 2)  # 28 variables (8 original + 8 firing rates + 8 filtered + 4 gains)
+            self.jacobian_dimension = num_area * (2 * num_neurons_per_area + num_filtered_vars)  # 24 variables (excluding gains)
             # Because, if we include them, the Jacobian will have eigenvalues at 0 or > 0.
         else:
-            self.num_var = num_area * num_neurons_per_area + 2*num_area  #  12 variables
-            self.jacobian_dimension = num_area * num_neurons_per_area
+            self.num_var = num_area * (num_neurons_per_area + num_filtered_vars + 2)  # 20 variables (8 original + 8 filtered + 4 gains)
+            self.jacobian_dimension = num_area * (num_neurons_per_area + num_filtered_vars)  # 16 variables (excluding gains)
         self.J = None
         self.contrast = None
     @property
@@ -52,7 +53,7 @@ class RingModel:
         
     
         
-    def single_area_computation(self,y,yPlus,u,uPlus,p,pPlus,s,sPlus,beta,gamma,z,yPlus_next,n,n_next):
+    def single_area_computation(self,y,yPlus,u,uPlus,p,pPlus,s,sPlus,fy,fu,fp,fs,beta,gamma,z,yPlus_next,n,n_next):
         '''
         Function to compute the dynamics of a single area.  
         Inputs:
@@ -60,6 +61,8 @@ class RingModel:
             The membrane potentials of the excitatory neurons.
         yPlus,uPlus,pPlus,sPlus : array-like
             The firing rates of the excitatory neurons.
+        fy,fu,fp,fs : array-like
+            The filtered noise variables.
         beta,gamma : array-like
             The feedback gain and input gain.
         z : array-like
@@ -81,6 +84,7 @@ class RingModel:
         tau_u = self.params[f'tauU{n}']
         tau_beta = self.params[f'tauBeta{n}']
         tau_gamma = self.params[f'tauGamma{n}']
+        tau_f = self.params[f'tauF{n}']  # Time constant for filtered variables
 
         Wnn = self.params[f'W{n}{n}']
         Wnn_next = self.params[f'W{n}{n_next}']
@@ -96,18 +100,21 @@ class RingModel:
         g = self.params[f'g{n}']
 
         # Compute dynamics
-        dy = (1 / tau_y) * (-y + (beta*b) * z + (1 / (1 + pPlus)) * (np.matmul(Wnn, np.sqrt(yPlus)) + (gamma*g) * np.matmul(Wnn_next, np.sqrt(yPlus_next))))
+        dy = (1 / tau_y) * (-y + (beta*b) * z + (1 / (1 + pPlus)) * (np.matmul(Wnn, np.sqrt(yPlus)) + (gamma*g) * np.matmul(Wnn_next, np.sqrt(yPlus_next))) ) + fy
+        du = (1 / tau_u) * (-u + (sigma*b)**2 + np.matmul(Wn, yPlus * uPlus**2)) + fu
+        dp = (1 / tau_p) * (-p + (g*np.matmul(Wnn_next, np.sqrt(yPlus_next))) / ( sPlus ) + uPlus + p * uPlus + alpha *  tau_u * du ) + fp
+        ds = (1 / tau_s) * (-s + np.sqrt(yPlus+self.epsilon)) +fs
         
-        du = (1 / tau_u) * (-u + (sigma*b)**2 + np.matmul(Wn, yPlus * uPlus**2))
-        
-        dp = (1 / tau_p) * (-p + (g*np.matmul(Wnn_next, np.sqrt(yPlus_next))) / ( sPlus ) + uPlus + p * uPlus + alpha *  tau_u * du)
-        
-        ds = (1 / tau_s) * (-s + np.sqrt(yPlus+self.epsilon))
+        # Filtered noise dynamics
+        dfy = (1 / tau_f) * (-fy)
+        dfu = (1 / tau_f) * (-fu)
+        dfp = (1 / tau_f) * (-fp)
+        dfs = (1 / tau_f) * (-fs)
         
         dbeta = (1 / tau_beta) * (-beta + beta_0)
         dgamma = (1 / tau_gamma) * (-gamma + gamma_0)
 
-        return dy, du, dp, ds, dbeta, dgamma
+        return dy, du, dp, ds, dfy, dfu, dfp, dfs, dbeta, dgamma
         
     
     
@@ -130,10 +137,14 @@ class RingModel:
         Y = np.squeeze(Y)
         y5Plus = np.zeros((N))
         # unpack variables
-        if self.simulate_firing_rates: # 20 variables
-            y1,y1Plus, y4,y4Plus, u1,u1Plus, u4,u4Plus, p1,p1Plus, p4,p4Plus,s1,s1Plus,s4,s4Plus,beta1,beta4, gamma1,gamma4 = [Y[i*N:(i+1)*N] for i in range(self.num_var)]
-        else: # 12 variables
-            y1,y4, u1,u4, p1,p4,s1,s4, beta1,beta4,gamma1,gamma4 = [Y[i*N:(i+1)*N] for i in range(self.num_var)]
+        if self.simulate_firing_rates: # 28 variables
+            y1,y1Plus, y4,y4Plus, u1,u1Plus, u4,u4Plus, p1,p1Plus, p4,p4Plus, s1,s1Plus, s4,s4Plus, \
+            fy1,fu1,fp1,fs1, fy4,fu4,fp4,fs4, \
+            beta1,beta4, gamma1,gamma4 = [Y[i*N:(i+1)*N] for i in range(self.num_var)]
+        else: # 20 variables
+            y1,y4, u1,u4, p1,p4, s1,s4, \
+            fy1,fu1,fp1,fs1, fy4,fu4,fp4,fs4, \
+            beta1,beta4, gamma1,gamma4 = [Y[i*N:(i+1)*N] for i in range(self.num_var)]
         
         if self.simulate_firing_rates:
             dy1Plus = (1 / self.params['tauYPlus1']) * (-y1Plus + relu(y1, self.rectify) ** 2)
@@ -153,21 +164,34 @@ class RingModel:
             p4Plus = relu(p4, self.rectify)
             s1Plus = relu(s1, self.rectify)
             s4Plus = relu(s4, self.rectify)
-            
-
         
         z1 = np.matmul(x, self.params['Wzx'].T) # input to V1
-        z4 = np.matmul( self.params['W41'] , y1Plus) # input to V4
+        z4 = np.matmul(self.params['W41'], y1Plus) # input to V4
         
-        dy1,du1,dp1,ds1,dbeta1,dgamma1 = self.single_area_computation(y1,y1Plus,u1,u1Plus,p1,p1Plus,s1,s1Plus,beta1,gamma1,z1,y4Plus,n=1,n_next=4) # V1
-        dy4,du4,dp4,ds4,dbeta4,dgamma4 = self.single_area_computation(y4,y4Plus,u4,u4Plus,p4,p4Plus,s4,s4Plus,beta4,gamma4,z4,y5Plus,n=4,n_next=5) # V4
-           
+        dy1,du1,dp1,ds1,dfy1,dfu1,dfp1,dfs1,dbeta1,dgamma1 = self.single_area_computation(
+            y1,y1Plus,u1,u1Plus,p1,p1Plus,s1,s1Plus,fy1,fu1,fp1,fs1,beta1,gamma1,z1,y4Plus,n=1,n_next=4) # V1
+        
+        dy4,du4,dp4,ds4,dfy4,dfu4,dfp4,dfs4,dbeta4,dgamma4 = self.single_area_computation(
+            y4,y4Plus,u4,u4Plus,p4,p4Plus,s4,s4Plus,fy4,fu4,fp4,fs4,beta4,gamma4,z4,y5Plus,n=4,n_next=5) # V4
 
         if self.simulate_firing_rates:
-            dY = np.concatenate([dy1, dy1Plus, dy4, dy4Plus, du1, du1Plus, du4, du4Plus, dp1, dp1Plus, dp4, dp4Plus, ds1, ds1Plus, ds4, ds4Plus, dbeta1, dbeta4, dgamma1, dgamma4])
+            dY = np.concatenate([
+                dy1,dy1Plus, dy4,dy4Plus,
+                du1,du1Plus, du4,du4Plus,
+                dp1,dp1Plus, dp4,dp4Plus,
+                ds1,ds1Plus, ds4,ds4Plus,
+                dfy1,dfu1,dfp1,dfs1,
+                dfy4,dfu4,dfp4,dfs4,
+                dbeta1,dbeta4, dgamma1,dgamma4
+            ])
         else:
-            dY = np.concatenate([dy1, dy4, du1, du4, dp1, dp4,ds1,ds4, dbeta1, dbeta4, dgamma1, dgamma4])
-        return dY  
+            dY = np.concatenate([
+                dy1,dy4, du1,du4, dp1,dp4, ds1,ds4,
+                dfy1,dfu1,dfp1,dfs1,
+                dfy4,dfu4,dfp4,dfs4,
+                dbeta1,dbeta4, dgamma1,dgamma4
+            ])
+        return dY
     
     def wrapper_func_autograd(self,Y):
         """

@@ -15,15 +15,15 @@ model_params:
   sigma4: 0.07
   
 noise_params:
-  tau_f:  0.005
-  sigma_f: 0.01
-  noise_potential: 0.05 # 0.05
-  noise_firing_rate: 0.00 # 0.01
+  # tau_f:  0.005
+  sigma_f: 0.005
+  noise_potential: 0.00 # 0.05
+  noise_firing_rate: 0.01 # 0.01
   GR_noise: true
   delta_tau: 3.0 # 3 * tau
-  noise_sigma: 0.0025 #0.5    # Amplitude of low-pass filtered noise # 2.0 for sigma = 0.025
-  noise_tau: 0.075     # Time constant of low-pass filter in seconds # 0.25 for sigma = 0.025
-  low_pass_add: True
+  noise_sigma: 0.025 #0.5    # Amplitude of low-pass filtered noise # 2.0 for sigma = 0.025
+  noise_tau: 0.025     # Time constant of low-pass filter in seconds # 0.25 for sigma = 0.025
+  low_pass_add: false
 
 Gain_modulation:
   Feedback_gain:

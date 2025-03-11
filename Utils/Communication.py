@@ -255,7 +255,7 @@ def performance(P1, P2, P3):
 #     return pred_perf, dims
 
 
-def Calculate_Pred_perf_Dim(model, gamma_vals, contrast_vals, fb_gain, input_gain_beta1, input_gain_beta4, delta_tau, noise_potential, noise_firing_rate, GR_noise, method, com_params, t_span=[0,6]):
+def Calculate_Pred_perf_Dim(model, gamma_vals, contrast_vals, fb_gain, input_gain_beta1, input_gain_beta4, delta_tau, noise_potential, noise_firing_rate,sigma_f, GR_noise, method, com_params, t_span=[0,6]):
     N = model.params['N']
     params = model.params
     initial_conditions = np.ones((model.num_var * N)) * 0.01
@@ -282,7 +282,7 @@ def Calculate_Pred_perf_Dim(model, gamma_vals, contrast_vals, fb_gain, input_gai
             # Create S and L matrices
             S = create_S_matrix(updated_model)
             D = S**2
-            L = create_L_matrix(updated_model, ss, delta_tau, noise_potential, noise_firing_rate, GR_noise)
+            L = create_L_matrix(updated_model, ss, delta_tau, noise_potential, noise_firing_rate,sigma_f, GR_noise)
             
             # Compute correlation matrices
             Py = correlation(J, L, D, com_params['bw_y1_y4'])
