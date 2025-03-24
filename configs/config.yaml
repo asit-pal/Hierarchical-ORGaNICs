@@ -18,7 +18,7 @@ noise_params:
   tau_f:  0.005
   sigma_f: 0.01
   noise_potential: 0.05 # 0.05
-  noise_firing_rate: 0.00 # 0.01
+  noise_firing_rate: 0.01 # 0.01
   GR_noise: true
   delta_tau: 3.0 # 3 * tau
   noise_sigma: 0.0025 #0.5    # Amplitude of low-pass filtered noise # 2.0 for sigma = 0.025
@@ -56,7 +56,7 @@ Power_spectra:
     enabled: True
     gamma_vals: [1.0]
     # c_vals: [1.0,0.5,0.25,0.125,0.064,0.032]
-    c_vals: [0.025,0.037,0.061,0.097,0.163,0.359,0.503,0.72]
+    c_vals: [0.01,0.025,0.037,0.061,0.097,0.163,0.359,0.503,0.72]
     t_span: [0, 5]
     save_data: true
     
@@ -71,7 +71,7 @@ Power_spectra:
 Coherence:
   Feedback_gain:
     enabled: True
-    gamma_vals: [0.9]
+    gamma_vals: [1.0]
     # c_vals: [0.032,0.064,0.125,0.25,0.5,1.0]
     c_vals: [0.025,0.037,0.061,0.097,0.163,0.359,0.503,0.72]
     t_span: [0, 6]
