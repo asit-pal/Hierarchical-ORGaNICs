@@ -276,7 +276,7 @@ def Calculate_Pred_perf_Dim(model, gamma_vals, contrast_vals, fb_gain, input_gai
             updated_model.params = updated_params
             
             # Get Jacobian and steady state
-            J, ss = updated_model.get_Jacobian(contrast, initial_conditions, method, t_span)
+            J, ss = updated_model.get_Jacobian_augmented(contrast, initial_conditions, method, t_span)
             J = torch.tensor(J, dtype=torch.float32)
             
             # Create S and L matrices
@@ -335,7 +335,7 @@ def Calculate_Covariance_mean(model,gamma_vals,contrast,g,fb_gain,input_gain_bet
         updated_model.params['g1'] = g
         
         # Get Jacobian
-        J, ss = updated_model.get_Jacobian(contrast,initial_conditions, method, t_span)
+        J, ss = updated_model.get_Jacobian_augmented(contrast,initial_conditions, method, t_span)
         
         # Create S and L matrices
         S = create_S_matrix(updated_model)
@@ -372,7 +372,7 @@ def calculate_pred_performance_freq(model, gamma_vals, contrast,g,fb_gain,input_
         updated_model.params['g1'] = g
 
         # Compute the Jacobian
-        J, ss = updated_model.get_Jacobian(contrast,initial_conditions, method, t_span)
+        J, ss = updated_model.get_Jacobian_augmented(contrast,initial_conditions, method, t_span)
         J = torch.tensor(J, dtype=torch.float32)
 
         # Create S and L matrices
@@ -482,7 +482,7 @@ def calculate_dim_vs_freq(model, gamma_vals, contrast,g,fb_gain,input_gain_beta1
         updated_model.params['g1'] = g
 
         # Compute the Jacobian
-        J, ss = updated_model.get_Jacobian(contrast,initial_conditions, method, t_span)
+        J, ss = updated_model.get_Jacobian_augmented(contrast,initial_conditions, method, t_span)
         J = torch.tensor(J, dtype=torch.float32)
 
         # Create S and L matrices
@@ -574,7 +574,7 @@ def Calculate_Fano_Factor(model, gamma_vals, contrast, g, fb_gain, input_gain_be
         updated_model.params['g1'] = g
         
         # Get Jacobian and steady state
-        J, ss = updated_model.get_Jacobian(contrast, initial_conditions, method, t_span)
+        J, ss = updated_model.get_Jacobian_augmented(contrast, initial_conditions, method, t_span)
         
         # Create S and L matrices
         S = create_S_matrix(updated_model)

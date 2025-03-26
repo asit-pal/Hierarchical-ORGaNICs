@@ -11,7 +11,7 @@ import yaml
 import numpy as np
 from Utils.Create_weight_matrices import setup_parameters
 from Models.Model import RingModel
-from Utils.Coherence import Calculate_power_spectra, create_S_matrix_filtered, create_L_matrix
+from Utils.Coherence import Calculate_power_spectra, create_S_matrix, create_L_matrix
 
 def main(config_file, area='V1'):
     """
