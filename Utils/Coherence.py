@@ -9,7 +9,7 @@ import os
 from Utils.matrix_spectrum import noise_power_spectrum
 
 
-def Calculate_coherence(model, i, j, fb_gain, input_gain_beta1, input_gain_beta4, delta_tau, noise_potential, noise_firing_rate, GR_noise, low_pass_add, noise_sigma, noise_tau, contrast_vals, method, gamma_vals, min_freq=1, max_freq=5e2, n_freq_mat=100, t_span=[0, 6]):
+def Calculate_coherence(model, i, j, fb_gain, input_gain_beta1, input_gain_beta4, delta_tau, noise_potential, noise_firing_rate, GR_noise, low_pass_add, rho, noise_sigma, noise_tau, contrast_vals, method, gamma_vals, min_freq=1, max_freq=5e2, n_freq_mat=100, t_span=[0, 6]):
     """
     Calculate coherence for all combinations of gamma and contrast values.
     Saves all data in a single file.
@@ -43,7 +43,7 @@ def Calculate_coherence(model, i, j, fb_gain, input_gain_beta1, input_gain_beta4
             L = create_L_matrix(updated_model, ss, delta_tau, noise_potential, noise_firing_rate, GR_noise)
 
             # Calculate coherence
-            mat_model = matrix_solution(J, L, S, noise_sigma, noise_tau, low_pass_add=low_pass_add)
+            mat_model = matrix_solution(J, L, S, noise_sigma, noise_tau, low_pass_add=low_pass_add, rho=rho)
             coh_matrix, _ = mat_model.coherence(i=i, j=j, freq=freq_mat)
 
             # Store data with (gamma, contrast) tuple as key
@@ -106,7 +106,7 @@ def Calculate_coherence(model, i, j, fb_gain, input_gain_beta1, input_gain_beta4
 #     return power_data
 
 def Calculate_power_spectra(model, i, fb_gain, input_gain_beta1, input_gain_beta4, delta_tau, 
-                          noise_potential, noise_firing_rate, GR_noise, low_pass_add, 
+                          noise_potential, noise_firing_rate, GR_noise, low_pass_add, rho,
                           noise_sigma, noise_tau, contrast_vals, method, gamma_vals, 
                           tau_f, sigma_f, min_freq=None, max_freq=None, n_freq_mat=None, t_span=None):
     """
@@ -141,17 +141,17 @@ def Calculate_power_spectra(model, i, fb_gain, input_gain_beta1, input_gain_beta
             L = create_L_matrix(updated_model, ss, delta_tau, noise_potential, noise_firing_rate, GR_noise)
 
             # Initialize power matrix for this gamma/contrast combination
-            power_matrix = torch.zeros_like(freq_mat)
+            # power_matrix = torch.zeros_like(freq_mat)
 
             # Calculate power spectrum for each frequency
-            for f_idx, freq in enumerate(freq_mat):
+            # for f_idx, freq in enumerate(freq_mat):
                 # Create frequency-dependent S matrix
                 # S = create_S_matrix_filtered(updated_model, freq.item(), tau_f,sigma_f)
-                S = create_S_matrix(updated_model)
-                # Calculate coherence for this frequency
-                mat_model = matrix_solution(J, L, S, noise_sigma, noise_tau, low_pass_add=low_pass_add)
-                power_at_freq, _ = mat_model.auto_spectrum(i=i, freq=freq.unsqueeze(0))
-                power_matrix[f_idx] = power_at_freq
+            S = create_S_matrix(updated_model)
+            # Calculate coherence for this frequency
+            mat_model = matrix_solution(J, L, S, noise_sigma, noise_tau, low_pass_add=low_pass_add, rho=rho)
+            power_matrix, _ = mat_model.auto_spectrum(i=i, freq=freq_mat)
+            # power_matrix[f_idx] = power_at_freq   
 
             # Store data with (gamma, contrast) tuple as key
             key = (gamma, contrast)

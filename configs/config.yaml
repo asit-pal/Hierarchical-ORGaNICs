@@ -23,7 +23,8 @@ noise_params:
   delta_tau: 3.0 # 3 * tau
   noise_sigma: 0.030 #0.5    # Amplitude of low-pass filtered noise # 2.0 for sigma = 0.025
   noise_tau: 0.040     # Time constant of low-pass filter in seconds # 0.25 for sigma = 0.025
-  low_pass_add: False
+  low_pass_add: True
+  rho: 0.10
 
 Gain_modulation:
   Feedback_gain:
@@ -39,13 +40,13 @@ Gain_modulation:
 Communication:
   Feedback_gain:
     enabled: True
-    gamma_vals: [0.5,1.0]
+    gamma_vals: [1.0]
     c_vals: [1.0]
     t_span: [0, 6]
     save_data: true
 
   Input_gain_beta1:
-    enabled: True
+    enabled: False
     beta1_vals: [0.5,1.0]
     c_vals: [1.0]
     t_span: [0, 6]

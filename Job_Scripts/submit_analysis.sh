@@ -31,7 +31,7 @@ export RESULTS_DIR
 
 echo "Submitting analysis jobs for config ${CONFIG_NUM}"
 
-# # Submit power spectra analysis (use full path)
+# # # Submit power spectra analysis (use full path)
 power_analysis_job=$(sbatch ${JOB_SCRIPTS_DIR}/power_analysis_job.sbatch)
 echo "Submitted power spectra analysis job: ${power_analysis_job}"
 
