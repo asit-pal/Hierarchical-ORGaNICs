@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import os
 import sys
 import argparse
+import matplotlib.colors as mcolors
 # from Plotting import plot_power_spectra 
 
 def plot_feedback_gain_results(results_dir, area='V1'):
@@ -121,6 +122,51 @@ def plot_power_spectra_fixed_gamma(power_data, contrast_vals, gamma, line_width=
     ax.set_xscale('log')
     # Add title showing gamma value
     ax.set_title(rf'$\gamma_1={gamma}$', fontsize=line_labelsize)
+
+    # Use manual adjustment instead of tight_layout
+    plt.subplots_adjust(left=0.15, right=0.95, top=0.95, bottom=0.15)
+    
+    return fig, ax
+
+def plot_power_spectra(power_data, gamma_vals, contrast, fb_gain, input_gain_beta1, input_gain_beta4, line_width=5, line_labelsize=42, legendsize=42):
+    # Set the backend to 'Agg' for headless environments
+    
+    
+    fig, ax = plt.subplots(figsize=(14, 10))
+    
+    # Create a truncated viridis colormap that does not include the last yellow part
+    viridis = plt.get_cmap('viridis')
+    truncated_viridis = mcolors.ListedColormap(viridis(np.linspace(0, 0.8, 256)))
+    
+    norm = mcolors.Normalize(vmin=min(gamma_vals), vmax=max(gamma_vals))
+    
+    for gamma in gamma_vals:
+        key = (gamma,contrast) 
+        data = power_data[key]
+        freq = data['freq']
+        power = data['power']
+        
+        # Get color from truncated colormap
+        color = truncated_viridis(norm(gamma))
+        
+        # Determine label based on which gain is being varied
+        if fb_gain:
+            label = rf'$\gamma_1={gamma}$'
+        elif input_gain_beta1:
+            label = rf'$\beta_1={gamma}$'
+        elif input_gain_beta4:
+            label = rf'$\beta_4={gamma}$'
+        
+        # Use solid line style for all cases
+        linestyle = '-'
+        
+        ax.loglog(freq, power, lw=line_width, linestyle=linestyle, label=label, color=color)
+    
+    # Fix the LaTeX formatting in labels
+    ax.set_xlabel(r'$\mathrm{Frequency\;(Hz)}$', fontsize=line_labelsize)
+    ax.set_ylabel(r'$\mathrm{V1\;Power}$', fontsize=line_labelsize)
+    ax.tick_params(axis='both', which='major', labelsize=line_labelsize)
+    ax.legend(fontsize=legendsize, loc='best', frameon=False, handletextpad=0.2, handlelength=1.0, labelspacing=0.2)
 
     # Use manual adjustment instead of tight_layout
     plt.subplots_adjust(left=0.15, right=0.95, top=0.95, bottom=0.15)

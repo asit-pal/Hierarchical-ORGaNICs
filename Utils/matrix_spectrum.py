@@ -39,6 +39,8 @@ class matrix_solution:
         :param L: Noise coefficient matrix
         :param S: Diagonal matrix containing the standard deviation of the Wiener increments.
         """
+        if J.shape != L.shape or J.shape != S.shape:
+            raise ValueError(f"Matrices J {J.shape}, L {L.shape}, S {S.shape} must all have the same shapes")
         self.N = None
         self.J = J
         self.S = S
@@ -49,6 +51,9 @@ class matrix_solution:
 
         self.L = L
         self.noise_mat = (self.L @ self.D @ self.L.T).type(torch.cdouble)
+        
+        if self.noise_mat.shape != self.J.shape:
+            raise ValueError(f"Noise matrix {self.noise_mat.shape} must have the same shape as J {self.J.shape}")
 
     @property
     def J(self):
@@ -79,7 +84,7 @@ class matrix_solution:
         om = (2 * np.pi * freq).to(device)
         m = freq.size(0)
 
-        n = self.N
+        n = self.N # n is total number of neurons in the network 
         S = torch.zeros((m, n, n), dtype=torch.cdouble, device=device)
 
         with torch.no_grad():

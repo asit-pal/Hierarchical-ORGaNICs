@@ -114,6 +114,7 @@ def main(config_file, area='V1'):
             method='RK45',
             gamma_vals=beta1_vals,
             tau_f = config['noise_params']['tau_f'],
+            sigma_f = config['noise_params']['sigma_f'],
             min_freq=1,
             max_freq=1000,
             n_freq_mat=500,

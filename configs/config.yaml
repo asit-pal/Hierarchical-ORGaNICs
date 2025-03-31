@@ -15,15 +15,15 @@ model_params:
   sigma4: 0.07
   
 noise_params:
-  tau_f:  0.005 # 0.001 for CS
+  tau_f:  0.001 # 0.001 for CS
   sigma_f: 0.01
   noise_potential: 0.000 # 0.05
   noise_firing_rate: 0.001 # 0.01
   GR_noise: true
   delta_tau: 3.0 # 3 * tau
-  noise_sigma: 0.0025 #0.5    # Amplitude of low-pass filtered noise # 2.0 for sigma = 0.025
-  noise_tau: 0.075     # Time constant of low-pass filter in seconds # 0.25 for sigma = 0.025
-  low_pass_add: True
+  noise_sigma: 0.030 #0.5    # Amplitude of low-pass filtered noise # 2.0 for sigma = 0.025
+  noise_tau: 0.040     # Time constant of low-pass filter in seconds # 0.25 for sigma = 0.025
+  low_pass_add: False
 
 Gain_modulation:
   Feedback_gain:
@@ -39,15 +39,15 @@ Gain_modulation:
 Communication:
   Feedback_gain:
     enabled: True
-    gamma_vals: [1.0]
-    c_vals: [ 1.0]
+    gamma_vals: [0.5,1.0]
+    c_vals: [1.0]
     t_span: [0, 6]
     save_data: true
 
   Input_gain_beta1:
-    enabled: false
+    enabled: True
     beta1_vals: [0.5,1.0]
-    c_vals: [0.032]
+    c_vals: [1.0]
     t_span: [0, 6]
     save_data: true
 
@@ -61,10 +61,10 @@ Power_spectra:
     save_data: true
     
   Input_gain_beta1:
-    enabled: false
-    beta1_vals: [0.9]
+    enabled: False
+    beta1_vals: [0.50,0.75,1.0,1.25,1.5]
     # c_vals: [1.0,0.5,0.25,0.125,0.064,0.032]
-    c_vals: [0.025,0.037,0.061,0.097,0.163,0.359,0.503,0.72]
+    c_vals: [0.00,0.025,0.037,0.061,0.097,0.163,0.359,0.503,0.72]
     t_span: [0, 6]
     save_data: true
 
@@ -77,8 +77,8 @@ Coherence:
     t_span: [0, 6]
 
   Input_gain_beta1:
-    enabled: true
-    beta1_vals: [0.9]
+    enabled: False
+    beta1_vals: [0.50,0.75,1.0,1.25,1.5]
     # c_vals: [0.032, 0.064, 0.125, 0.25, 0.5, 1.0]
     c_vals: [0.025,0.037,0.061,0.097,0.163,0.359,0.503,0.72]
     t_span: [0, 6]

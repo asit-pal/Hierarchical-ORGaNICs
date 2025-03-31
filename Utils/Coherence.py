@@ -35,11 +35,11 @@ def Calculate_coherence(model, i, j, fb_gain, input_gain_beta1, input_gain_beta4
             updated_model = copy.deepcopy(model)
             updated_model.params = updated_params 
 
-            # Get Jacobian
-            J, ss = updated_model.get_Jacobian(contrast, initial_conditions, method, t_span)
+            # Get augmented Jacobian
+            J, ss = updated_model.get_Jacobian_augmented(contrast, initial_conditions, method, t_span)
             J = torch.tensor(J, dtype=torch.float32)
 
-            # Create L matrix
+            # Create L matrix (now includes filtered variables)
             L = create_L_matrix(updated_model, ss, delta_tau, noise_potential, noise_firing_rate, GR_noise)
 
             # Calculate coherence
