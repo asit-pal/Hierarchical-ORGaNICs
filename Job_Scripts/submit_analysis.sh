@@ -36,10 +36,10 @@ power_analysis_job=$(sbatch ${JOB_SCRIPTS_DIR}/power_analysis_job.sbatch)
 echo "Submitted power spectra analysis job: ${power_analysis_job}"
 
 # # # Submit coherence analysis
-# coherence_job=$(sbatch ${JOB_SCRIPTS_DIR}/coherence_analysis_job.sbatch)
-# echo "Submitted coherence analysis job: ${coherence_job}"
+coherence_job=$(sbatch ${JOB_SCRIPTS_DIR}/coherence_analysis_job.sbatch)
+echo "Submitted coherence analysis job: ${coherence_job}"
 
-# Submit communication analysis
+# # Submit communication analysis
 # comm_job=$(sbatch ${JOB_SCRIPTS_DIR}/communication_analysis_job.sbatch)
 # echo "Submitted communication analysis job: ${comm_job}"
 

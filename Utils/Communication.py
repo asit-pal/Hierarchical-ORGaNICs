@@ -322,7 +322,8 @@ def Calculate_Pred_perf_Dim(model, gamma_vals, contrast_vals, fb_gain, input_gai
 def Calculate_Covariance_mean(model,gamma_vals,contrast,g,fb_gain,input_gain_beta1,input_gain_beta4,method,com_params,delta_tau,noise_potential,noise_firing_rate,GR_noise,t_span=[0,6]):
     N = model.params['N']
     initial_conditions = np.ones((model.num_var * N)) * 0.01
-    
+    S = create_S_matrix(updated_model)
+    D = S**2
     for gamma in tqdm(gamma_vals):
         updated_model = copy.deepcopy(model)
         if fb_gain:
@@ -338,8 +339,7 @@ def Calculate_Covariance_mean(model,gamma_vals,contrast,g,fb_gain,input_gain_bet
         J, ss = updated_model.get_Jacobian_augmented(contrast,initial_conditions, method, t_span)
         
         # Create S and L matrices
-        S = create_S_matrix(updated_model)
-        D = S**2
+        
         L = create_L_matrix(updated_model, ss, delta_tau, noise_potential, noise_firing_rate, GR_noise)
 
         # Compute correlation matrices

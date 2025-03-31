@@ -21,7 +21,7 @@ conda activate torch-nn
 cd "${BASE_DIR}"
 
 echo "Running Coherence Analysis"
-# python ${BASE_DIR}/Analysis/Coherence_analysis.py "${NEW_CONFIG}"
+python ${BASE_DIR}/Analysis/Coherence_analysis.py "${NEW_CONFIG}"
 
 echo "Plotting Coherence Analysis"
 # python ${BASE_DIR}/Plotting/Plot_coherence_fixed_contrast.py "${RESULTS_DIR}"
