@@ -1,11 +1,9 @@
 # Standard library imports
-import copy
-
 # Third-party imports
 from scipy.integrate import solve_ivp
 import autograd.numpy as np
 from autograd import jacobian
-from tqdm.notebook import tqdm
+from tqdm import tqdm
 
 def relu(x,rectify):
         return np.maximum(rectify,x) 
@@ -19,6 +17,7 @@ class RingModel:
         self.M = params['M']
         self.N = params['N']
         self.target_angle = target_angle
+        
         num_neurons_per_area = 4
         num_area = 3  # V1, V4, V5
         if self.simulate_firing_rates:
@@ -242,3 +241,75 @@ class RingModel:
         
         self.J = J
         return J, ss
+    
+    def get_Jacobian_augmented(self, contrast, initial_conditions, method, t_span=[0, 5]):
+        """
+        Compute the augmented Jacobian that includes additional filtered noise variables for the membrane potentials.
+
+        In the original system (when simulate_firing_rates is True) the state vector x is:
+            x = [y1, y1Plus, y4, y4Plus, y5, y5Plus, u1, u1Plus, u4, u4Plus, u5, u5Plus, 
+                 p1, p1Plus, p4, p4Plus, p5, p5Plus, s1, s1Plus, s4, s4Plus, s5, s5Plus]
+        with total length n = (jacobian_dimension * N). Here, the membrane potentials (without the 'Plus'
+        suffix) appear at indices 0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22.
+
+        We wish to augment the system by adding an additional noise variable f for each membrane potential.
+        The augmented dynamics are:
+            x_dot = J x + (f / tau_x)
+            f_dot = -f / tau_f + (noise)
+        so that the (deterministic) Jacobian for the augmented system is a block matrix:
+                    [ J        I/tau_x ]
+            J_aug = [ 0      -I/tau_f  ]
+        where I/tau_x is inserted only in the rows corresponding to the membrane potentials.
+
+        The new augmented state is [x; f] and the steady state for f is assumed to be zero.
+
+        Args:
+            contrast: Contrast value.
+            initial_conditions: Initial condition for the original state vector x.
+            method: Integration method (default 'RK45').
+            t_span: Time span for integration.
+
+        Returns:
+            J_aug: Augmented Jacobian matrix.
+            ss_aug: Augmented steady state vector ([ss; 0]).
+        """
+        J, ss = self.get_Jacobian(contrast, initial_conditions, method, t_span)
+        N = self.N
+        n = self.jacobian_dimension * N  # original state dimension
+        
+        # Define the indices of the membrane potentials in the original state vector
+        if self.simulate_firing_rates:
+            membrane_indices = [0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22]
+        else:
+            membrane_indices = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
+        
+        # Define the indices of the noise variables in the augmented state vector
+        m = len(membrane_indices) * N
+        
+        # Construct the upper-right block A: shape(n,m)
+        # For each membrane potential, we add an identity block divided by tau_x
+        A = np.zeros((n, m))
+        for idx, mem in enumerate(membrane_indices):
+            row_start = mem * N
+            row_end = (mem + 1) * N
+            col_start = idx * N
+            col_end = (idx + 1) * N
+            A[row_start:row_end, col_start:col_end] = np.eye(N) / self.params['tau_x']
+        
+        # Lower-left block (B) is zeros, shape(m,n)
+        B = np.zeros((m, n))
+        
+        # Lower right block C is -I/tau_f shape (m,m)
+        C = -np.eye(m) / self.params['tau_f']
+        
+        # Construct the augmented Jacobian by forming the block matrix
+        #        [J  A]
+        # J_aug = [B  C]
+        J_aug = np.block([[J, A],
+                          [B, C]])
+        
+        # The augmented steady state is the original steady state with zeros appended for the new f variables
+        ss_aug = np.concatenate([ss, np.zeros(m)])
+        
+        return J_aug, ss_aug
+    

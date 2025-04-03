@@ -446,68 +446,7 @@ def plot_power_spectra_fixed_gamma(power_data, contrast_vals, gamma, line_width=
 #     return fig, ax
 
 # Three area model
-def plot_pred_perf_vs_dim_3(performance_data, pairs, contrast, labelsize=42, legendsize=42):
-    """
-    Plot prediction performance vs dimensions for different parameter pairs.
-    
-    Args:
-        performance_data: Dictionary containing performance metrics
-        pairs: List of (g, gamma4, gamma5) tuples
-        contrast: Contrast value
-        labelsize: Size of axis labels
-        legendsize: Size of legend text
-    """
-    colors = ['#DC143C', '#00BFFF', '#32CD32']
-    markers = ['o', 's', 'D']
-    fig, ax = plt.subplots(figsize=(12, 10))
-    
-    for i, pair in enumerate(pairs):
-        g, gamma4, gamma5 = pair
-        data = performance_data[g, gamma4, gamma5, contrast]
-        
-        # Plot V4 data
-        ax.fill_between(data['V4']['dims'], 
-                       data['V4']['mean'] - data['V4']['std'], 
-                       data['V4']['mean'] + data['V4']['std'], 
-                       color='gray', alpha=0.1)
-        ax.plot(data['V4']['dims'], data['V4']['mean'], 
-                marker=markers[i], markeredgecolor='black',
-                linestyle='None', markersize=18, color=colors[1])
-        
-        # Plot V5 data
-        ax.fill_between(data['V5']['dims'], 
-                       data['V5']['mean'] - data['V5']['std'], 
-                       data['V5']['mean'] + data['V5']['std'], 
-                       color='gray', alpha=0.1)
-        ax.plot(data['V5']['dims'], data['V5']['mean'], 
-                marker=markers[i], markeredgecolor='black',
-                linestyle='None', markersize=18, color=colors[0])
-    
-    # Add legends and labels
-    marker_legend = [
-        mlines.Line2D([0], [0], color=colors[0], marker='o', linestyle='None', 
-                     markersize=15, label=r'$\textnormal{V1-V4}$', markeredgecolor='black'),
-        mlines.Line2D([0], [0], color=colors[1], marker='o', linestyle='None', 
-                     markersize=15, label=r'$\textnormal{V1-MT}$', markeredgecolor='black'),
-    ]
-    
-    ax.legend(handles=marker_legend, loc='upper left', bbox_to_anchor=(-0.05, 1.0),
-             fontsize=legendsize, frameon=False, handletextpad=-0.2, labelspacing=0.2)
-    
-    plt.xlabel(r'$\textnormal{Dimensions}$', fontsize=labelsize, fontweight='bold')
-    plt.ylabel(r'$\textnormal{Prediction performance}$', fontsize=labelsize, fontweight='bold')
-    
-    # Set x-axis ticks
-    x_min, x_max = ax.get_xlim()
-    x_ticks = range(int(x_min), int(x_max) + 2, 2)
-    ax.set_xticks(x_ticks)
-    ax.set_xticklabels([rf'$\textnormal{x}$' for x in x_ticks])
-    
-    try:
-        fig.tight_layout()
-    except:
-        plt.subplots_adjust(left=0.15, right=0.95, top=0.95, bottom=0.15)
-    return fig, ax
+
 
 def plot_dimension_vs_freq(dimension_data, gamma_vals, contrast, fb_gain, input_gain_beta1, input_gain_beta4, frequencies, labelsize=28, legendsize=28):
     colors = ['#00BFFF', '#DC143C', '#50C878']

@@ -1,4 +1,5 @@
 import numpy as np
+import math
 
 
 def Norm_matrix(N,std_dev,gaussian_height):
@@ -52,8 +53,8 @@ def ReceptiveFields(N,theta,M):
     if pint < 1:
         pint = 1
 
-    const = np.sqrt(d / N) * np.sqrt((2 ** (2 * pint) * (np.math.factorial(pint)) ** 2)
-                                     / (np.math.factorial(2 * pint) * (pint + 1)))
+    const = np.sqrt(d / N) * np.sqrt((2 ** (2 * pint) * (math.factorial(pint)) ** 2)
+                                     / (math.factorial(2 * pint) * (pint + 1)))
     RFs = np.zeros((N, M))
     for idx in range(N):
         thetaOffset = idx * 2 * np.pi / N
@@ -69,8 +70,8 @@ def get_Wy1y2(N,theta):
     if pint < 1:
         pint = 1
 
-    const = np.sqrt(d / N) * np.sqrt((2 ** (2 * pint) * (np.math.factorial(pint)) ** 2)
-                                     / (np.math.factorial(2 * pint) * (pint + 1)))
+    const = np.sqrt(d / N) * np.sqrt((2 ** (2 * pint) * (math.factorial(pint)) ** 2)
+                                     / (math.factorial(2 * pint) * (pint + 1)))
     RFs = np.zeros((N, N))
     for idx in range(N):
         thetaOffset = idx * 2 * np.pi / N
@@ -134,13 +135,14 @@ def setup_parameters(tau=1e-3,kernel=None, N=36, M=None,tauPlus=1*1e-3, **kwargs
     'tauBeta1': tau, 'tauBeta4': tau, 'tauBeta5': tau,
     'tauGamma1': tau, 'tauGamma4': tau, 'tauGamma5': tau,
     'tau': tau,'tauPlus': tauPlus,
-    'sigma1': 0.1, 'sigma4': 0.1, 'sigma5': 0.1,
+    'tau_x': tau, 'tau_f': tau, 'sigma_f': 0.01,
+    'sigma1': 0.07, 'sigma4': 0.07, 'sigma5': 0.07,
     'alpha1': 10.0, 'alpha4': 10.0, 'alpha5': 10.0,
     'dt': tauPlus/3,
     'W11': W11, 'W44': W44, 'W55': W55,
-    'W14': W14, 'W41': W41, 'W45': W45, 'W54': W54, 'W15': W15, 'W51': W51,
+    'W14': W14*0.7, 'W41': W41, 'W45': W45, 'W54': W54, 'W15': W15*0.7, 'W51': W51,
     'Wn1': Wn1, 'Wn4': Wn4, 'Wn5': Wn5,
-    'Wzx': Wzx,
+    'Wzx': Wzx*0.7,
     'beta1': 1.0, 'beta4': 1.0, 'beta5': 1.0,
     'gamma14': 1.0, 'gamma41': 0.0, 'gamma45': 0.0, 'gamma54': 0.0,'gamma51': 0.0,'gamma15': 1.0,
     'b1': 0.5, 'b4': 0.5, 'b5': 0.5,
