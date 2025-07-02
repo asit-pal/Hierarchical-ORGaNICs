@@ -62,7 +62,7 @@ def ReceptiveFields(N,theta,M):
         RFs[idx, :] = abs(rf)
     return RFs
 
-def get_Wy1y2(N,theta):
+def get_W14(N):
     '''Receptive fields matrix'''
     d = int(N / 2)
     pint = d - 1
@@ -72,6 +72,7 @@ def get_Wy1y2(N,theta):
     const = np.sqrt(d / N) * np.sqrt((2 ** (2 * pint) * (math.factorial(pint)) ** 2)
                                      / (math.factorial(2 * pint) * (pint + 1)))
     RFs = np.zeros((N, N))
+    theta = np.linspace(0, 2 * np.pi, N, endpoint=False)
     for idx in range(N):
         thetaOffset = idx * 2 * np.pi / N
         thetaDiff = (theta - thetaOffset) / 2
@@ -93,6 +94,7 @@ def setup_parameters(config, tau=1e-3, kernel=None, N=36, M=None, tauPlus=1*1e-3
                   0.41472545, -0.073386624, -0.060944743, 0.02807382] # qmf 9 kernel
     
     # within area recurrent matrix
+    
     W11 = Recurrence_matrix(N, kernel)
     W11 = (W11.T + W11)/2.0 # making symmetric
     W11 = RescaleEigenvalues(W11) # rescaling eigenvalues to one
@@ -100,15 +102,34 @@ def setup_parameters(config, tau=1e-3, kernel=None, N=36, M=None, tauPlus=1*1e-3
     # Wn2 = Norm_matrix(N, std_dev=N/2,gaussian_height=1) # Normalization pool within each layers
     Wn1 = np.ones((N,N))
     Wn2 = np.ones((N,N))
+    # Wn1 = identity_matrix
+    # Wn2 = identity_matrix
     # Wn1 = (Wn1 + Wn1.T)/2.0 # making symmetric
     # Wn2 = (Wn2 + Wn2.T)/2.0 # making symmetric
     W44 = W11 # currently setting same within area recurrent matrix
+    # W44 = identity_matrix
     # theta1 = np.arange(0, 2 * np.pi, 2 * np.pi / 36)
     # Wy1y2 = Wy1y1**2  # For sabilization by feedback plot
     W14 = W11 @ W11 # connectivity matrix 
+    # W14 = identity_matrix
     # W14 = W11
     W41 = W14.T # Wy2y1 is transpose of Wy1y2
     W45 = W14
+    # W11 = identity_matrix # identity matrix check if the results holds
+    # W44 = identity_matrix
+    
+    
+    # Changing the weight matrices
+    
+    # identity_matrix = np.eye(N)
+    # Wn1 = identity_matrix * 0.0
+    # Wn2 = identity_matrix * 0.0
+    # W14 = 1/np.sqrt(N) * np.ones((N, N))
+    # W41 = W14.T
+    # W14 = get_W14(N)
+    # W41 = W14.T
+    # W45 = np.ones((N,N))
+    
     
     if M is None:
         theta = np.arange(0, 2 * np.pi, 2 * np.pi / 360)
@@ -118,8 +139,8 @@ def setup_parameters(config, tau=1e-3, kernel=None, N=36, M=None, tauPlus=1*1e-3
         theta = np.linspace(0, 2 * np.pi, M)
 
     # Encoding matrix: Receptive fields are raised cosine
-    Wzx = ReceptiveFields(N, theta, M)
-    
+    # Wzx = ReceptiveFields(N, theta, M)
+    Wzx = np.ones((N, M))/np.sqrt(N)
     pars = {
         'N': N, 'M': M,
         'tauY1': tau, 'tauY4': tau,

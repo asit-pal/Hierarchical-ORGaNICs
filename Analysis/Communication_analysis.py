@@ -60,18 +60,19 @@ def main(config_file):
     # Initialize initial conditions for steady state calculation
     initial_conditions = np.ones((Ring_Model.num_var * params['N'])) * 0.01
 
-    # Analysis parameters using exact config structure
-    # Communication subspace parameters
+    # Communication subspace parameters - Load from config with defaults
+    com_conf = config.get('com_params', {}) # Get com_params section or empty dict
     com_params = {
-        'num_trials': 200,
-        # 'tol': 5e-2,
-        'V1_s': 30,
-        'V1_t': 30,
-        'V4_t': 30,
-        'N1_y_idx': N1_y,
-        'N4_y_idx': N4_y,
-        'bw_y1_y4': bw_y1_y4,  # is it between potential or firing rates?
+        'num_trials': com_conf.get('num_trials', 200), # Default 200
+        'tol': com_conf.get('tol', 5e-2),        # Default 5e-2 (optional)
+        'V1_s': com_conf.get('V1_s', 30),         # Default 30
+        'V1_t': com_conf.get('V1_t', 30),         # Default 30
+        'V4_t': com_conf.get('V4_t', 30),         # Default 30
+        'N1_y_idx': N1_y,                          # Depends on model setup
+        'N4_y_idx': N4_y,                          # Depends on model setup
+        'bw_y1_y4': bw_y1_y4                      # Depends on model setup
     }
+    print(f"Using com_params: {com_params}") # Optional: print params being used
 
     # Run analyses based on config
     if config['Communication']['Feedback_gain']['enabled']:

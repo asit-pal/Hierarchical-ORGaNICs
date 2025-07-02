@@ -5,90 +5,149 @@ import sys
 import matplotlib.lines as mlines
 import matplotlib.patches as mpatches
 
-def plot_pred_perf_vs_dim_3(performance_data, pairs, contrast, labelsize=42, legendsize=42):
+# Add project root to Python path if necessary (adjust based on your structure)
+project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(project_root)
+
+# Keep the existing colors for parameter pairs
+colors = ['#DC143C', '#00BFFF', '#32CD32', '#000000']  # Red, Blue, Green, Black
+
+# Set up plotting parameters for journal-quality figures (matching reference)
+from Plotting import setup_plot_params # Import the setup function
+
+# Set up common plot parameters
+setup_plot_params()
+
+# Script-specific overrides to match Plot_communication_analysis.py
+plt.rcParams.update({
+    "lines.linewidth": 12,
+    "lines.markersize": 35,
+    "legend.handlelength": 1.5,
+    "legend.handletextpad": 0.3, 
+    "legend.labelspacing": 0.2,
+})
+
+def plot_pred_perf_vs_dim_3(performance_data, gamma4, gamma5, contrast):
     """
-    Plot prediction performance vs dimensions for different parameter pairs.
+    Plot prediction performance vs dimensions for a SINGLE parameter pair.
+    V1-V4 is blue, V1-V5 is red.
+    (Style matched to Plot_communication_analysis.py)
     
     Args:
         performance_data: Dictionary containing performance metrics
-        pairs: List of (g, gamma4, gamma5) tuples
+        gamma4: Single gamma4 value
+        gamma5: Single gamma5 value
         contrast: Contrast value
-        labelsize: Size of axis labels
-        legendsize: Size of legend text
     """
-    colors = ['#DC143C', '#00BFFF', '#32CD32', '#000000']  # Red, Blue, Green, Black
-    fig, ax = plt.subplots(figsize=(14, 10))
+    fig, ax = plt.subplots() # Create a new figure for this pair
     
-    custom_handles = []
+    # Define specific colors
+    color_v4 = '#00BFFF'  # Blue for V1-V4
+    color_v5 = '#DC143C'  # Red for V1-V5
     
-    # Create marker styles for V4 and V5
-    markers = {'V4': 'o', 'V5': 's'}
+    # Marker styles (V4 = V1-V4 prediction, V5 = V1-V5 prediction)
+    markers = {'V4': 's', 'V5': 'o'}
     
-    for i, (gamma4, gamma5) in enumerate(pairs):
-        # Access data assuming the key is (gamma4, gamma5, contrast)
-        data = performance_data[(gamma4, gamma5, contrast)]
+    # Access data for the specific pair
+    key = (gamma4, gamma5, contrast)
+    if key not in performance_data:
+        print(f"Warning: Data not found for key {key}")
+        plt.close(fig) # Close the empty figure
+        return None, None # Return None if data is missing
+
+    data = performance_data[key]
+    
+    # Calculate sample size for SEM
+    sample_size = 200
         
-        # Plot V4 data
-        ax.fill_between(data['V4']['dims'], 
-                       data['V4']['mean'] - 0.5*data['V4']['std'], 
-                       data['V4']['mean'] + 0.5*data['V4']['std'], 
-                       color='gray', alpha=0.1)
-        ax.plot(data['V4']['dims'], data['V4']['mean'], 
-                marker=markers['V4'], markeredgecolor='black',
-                linestyle='None', markersize=12, color=colors[i])
-        
-        # Plot V5 data
-        ax.fill_between(data['V5']['dims'], 
-                       data['V5']['mean'] - 0.5*data['V5']['std'], 
-                       data['V5']['mean'] + 0.5*data['V5']['std'], 
-                       color='gray', alpha=0.1)
-        ax.plot(data['V5']['dims'], data['V5']['mean'], 
-                marker=markers['V5'], markeredgecolor='black',
-                linestyle='None', markersize=12, color=colors[i])
-        
-        # Create label for the parameter combination, excluding 'g'
-        label = rf'$\gamma_4={gamma4:.2f},\gamma_5={gamma5:.2f}$'
-        custom_handles.append(mpatches.Patch(color=colors[i], label=label))
+    # --- V4 Data (Plot in Blue) ---
+    V4_dims = data['V4']['dims']
+    V4_mean = data['V4']['mean']
+    V4_std = data['V4']['std']
+    V4_sem = V4_std / np.sqrt(sample_size)  # Calculate SEM
     
-    # First legend for parameter combinations
-    legend1 = ax.legend(handles=custom_handles, fontsize=legendsize,
-                       loc='upper left', frameon=False,
-                       handletextpad=0.1, labelspacing=0.15,
-                       handlelength=1.0)
-    ax.add_artist(legend1)
+    # Apply slicing [1:7] to match Plot_communication_analysis.py
+    dims_slice = V4_dims[1:6]
+    mean_slice = V4_mean[1:6]
+    sem_slice = V4_sem[1:6]
+
+    # Fill between using SEM
+    ax.fill_between(dims_slice, 
+                    mean_slice - sem_slice, 
+                    mean_slice + sem_slice, 
+                    color='gray', alpha=0.1)
+    # Plot markers (using sliced data)
+    ax.plot(dims_slice, mean_slice, 
+            marker=markers['V4'], markeredgecolor='black',
+            linestyle='None', # No line for markers
+            color=color_v4) # Use blue color
+    # Plot dashed line (using sliced data)
+    ax.plot(dims_slice, mean_slice, 
+            linestyle='--',  # Match reference line style
+            color=color_v4) # Use blue color
+
+    # --- V5 Data (Plot in Red) ---
+    V5_dims = data['V5']['dims']
+    V5_mean = data['V5']['mean']
+    V5_std = data['V5']['std']
+    V5_sem = V5_std / np.sqrt(sample_size)  # Calculate SEM
     
-    # Second legend for markers
+    # Apply slicing [1:7] to match Plot_communication_analysis.py
+    dims_slice = V5_dims[1:6]
+    mean_slice = V5_mean[1:6]
+    sem_slice = V5_sem[1:6]
+    
+    # Fill between using SEM
+    ax.fill_between(dims_slice, 
+                    mean_slice - sem_slice, 
+                    mean_slice + sem_slice, 
+                    color='gray', alpha=0.1)
+    # Plot markers (using sliced data)
+    ax.plot(dims_slice, mean_slice, 
+            marker=markers['V5'], markeredgecolor='black',
+            linestyle='None', # No line for markers
+            color=color_v5) # Use red color
+    # Plot dashed line (using sliced data)
+    ax.plot(dims_slice, mean_slice, 
+            linestyle='--', # Match reference line style
+            color=color_v5) # Use red color
+            
+    # Legend for markers (uses the specific colors)
     marker_legend = [
-        mlines.Line2D([0], [0], color='black', marker='o',
-                     linestyle='None', markersize=10,
-                     label=r'$\mathrm{V1\text{-}V4}$'),
-        mlines.Line2D([0], [0], color='black', marker='s',
-                     linestyle='None', markersize=10,
-                     label=r'$\mathrm{V1\text{-}V5}$')
+        mlines.Line2D([0], [0], color=color_v4, marker=markers['V4'], # Blue, Square
+                     linestyle='--',
+                     label='V1-V4'),
+        mlines.Line2D([0], [0], color=color_v5, marker=markers['V5'], # Red, Circle
+                     linestyle='--',
+                     label='V1-V5')
     ]
-    legend2 = ax.legend(handles=marker_legend, loc='upper right',
-                       bbox_to_anchor=(0.80, 1.0), fontsize=legendsize,
-                       frameon=False, handletextpad=-0.2,
-                       labelspacing=0.15)
-    ax.add_artist(legend2)
-    
+    # Position and style matching reference/rcParams
+    legend2 = ax.legend(handles=marker_legend, loc='best',
+                       fontsize=plt.rcParams['legend.fontsize'],
+                       frameon=False, handletextpad=0.3,
+                       labelspacing=0.2)
+
     # Set labels and ticks
-    ax.set_xlabel(r'$\mathrm{Dimensions}$', fontsize=labelsize)
-    ax.set_ylabel(r'$\mathrm{Prediction\;performance}$', fontsize=labelsize)
-    ax.tick_params(axis='both', which='major', labelsize=labelsize)
+    ax.set_xlabel('Dimensions')
+    ax.set_ylabel('Prediction Performance')
+    ax.tick_params(axis='both', which='major', labelsize=plt.rcParams['xtick.labelsize'])
     
-    # Set x-axis limits and ticks
-    x_min, x_max = 0, 8
-    ax.set_xlim(x_min, x_max)
+    # Set x-axis limits and ticks to match Plot_communication_analysis.py
+    ax.set_xlim(0.5, 5.5)
+    ax.set_xticks(np.array([1, 3, 5]))
+    ax.set_xticks(np.array([2, 4]), minor=True)
     
-    # Manual adjustment instead of tight_layout
-    plt.subplots_adjust(left=0.15, right=0.95, top=0.95, bottom=0.15)
+    # Set y-axis limits and ticks to match Plot_communication_analysis.py
+    ax.set_ylim(0.00, 0.12)
+    ax.set_yticks(np.array([0.00, 0.06, 0.12]))
+    ax.set_yticks(np.array([0.03, 0.09]), minor=True)
     
     return fig, ax
 
 def plot_communication_analysis_3(results_dir):
     """
-    Plot three-area communication analysis results.
+    Plot three-area communication analysis results, creating a separate
+    figure for each parameter pair.
     
     Args:
         results_dir (str): Path to the results directory containing data
@@ -118,21 +177,32 @@ def plot_communication_analysis_3(results_dir):
         print(f"\nPairs found in data: {pairs}")
         print(f"Contrast value: {contrast}")
         
-        # Create plot
-        print("Creating communication analysis plot")
-        fig, ax = plot_pred_perf_vs_dim_3(
-            performance_data,
-            pairs,
-            contrast,
-            labelsize=42,
-            legendsize=42
-        )
-        
-        # Save the figure
-        save_path = os.path.join(plots_dir, f'Communication_analysis_3_contrast_{contrast}.pdf')
-        fig.savefig(save_path, dpi=400, bbox_inches='tight')
-        plt.close(fig)
-        print(f"Saved plot to: {save_path}")
+        # --- Loop through each pair and create a plot ---
+        for i, (gamma4, gamma5) in enumerate(pairs): # Keep enumerate for potential future use, but 'i' is not passed
+            print(f"Creating communication analysis plot for pair: gamma4={gamma4}, gamma5={gamma5}")
+            
+            fig, ax = plot_pred_perf_vs_dim_3( # Removed color_index argument
+                performance_data,
+                gamma4,
+                gamma5,
+                contrast
+                # i # Removed color index
+            )
+            
+            # Save the figure if plot was created successfully
+            if fig is not None:
+                # Create a unique filename for this pair
+                save_path = os.path.join(
+                    plots_dir, 
+                    f'Comm_analysis_3_g4_{gamma4:.2f}_g5_{gamma5:.2f}_contrast_{contrast}.pdf'
+                )
+                fig.subplots_adjust(left=0.15, right=0.95, top=0.9, bottom=0.15)
+                fig.savefig(save_path, dpi=400, format='pdf')
+                plt.close(fig) # Close the figure to free memory
+                print(f"Saved plot to: {save_path}")
+            else:
+                 print(f"Skipping save for pair gamma4={gamma4}, gamma5={gamma5} due to missing data.")
+
     else:
         print(f"Warning: Data file not found at {comm_data_file}")
 

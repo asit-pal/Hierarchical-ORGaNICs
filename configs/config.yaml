@@ -11,14 +11,14 @@ model_params:
   b4: 0.5
   g1: 0.5
   g4: 0.0
-  sigma1: 0.07
-  sigma4: 0.07
+  sigma1: 0.07 # 0.07 changed to 0.035
+  sigma4: 0.07 # 0.07 changed to 0.035
   
 noise_params:
   tau_f:  0.001 # 0.001 for CS
   sigma_f: 0.01
   noise_potential: 0.000 # 0.05
-  noise_firing_rate: 0.001 # 0.01
+  noise_firing_rate: 0.000 # 0.01
   GR_noise: true
   delta_tau: 3.0 # 3 * tau
   noise_sigma: 0.030 #0.5    # Amplitude of low-pass filtered noise # 2.0 for sigma = 0.025
@@ -29,11 +29,11 @@ noise_params:
 Gain_modulation:
   Feedback_gain:
     enabled: True
-    gamma_vals: [0.25,0.5,0.75,1.0]
-    t_span: [0, 6]
+    gamma_vals: [1.0]
+    t_span: [0, 10]
 
   Input_gain_beta1:
-    enabled: true
+    enabled: False
     beta1_vals: [0.5, 0.75, 1.0, 1.25, 1.5]
     t_span: [0, 6]
 
@@ -41,13 +41,14 @@ Communication:
   Feedback_gain:
     enabled: True
     gamma_vals: [1.0]
-    c_vals: [0.02]
-    t_span: [0, 6]
+    # c_vals: [0.025,0.037,0.061,0.097,0.163,0.359,0.503,0.72]
+    c_vals: [1.0]
+    t_span: [0, 10]
     save_data: true
 
   Input_gain_beta1:
     enabled: False
-    beta1_vals: [0.5,1.0]
+    beta1_vals: [0.5,0.75,1.0,1.25,1.5]
     c_vals: [1.0]
     t_span: [0, 6]
     save_data: true
@@ -55,32 +56,33 @@ Communication:
 Power_spectra:
   Feedback_gain:
     enabled: True
-    gamma_vals: [1.0,0.0]
-    # c_vals: [1.0,0.5,0.25,0.125,0.064,0.032]
-    c_vals: [0.00,0.025,0.037,0.061,0.097,0.163,0.359,0.503,0.72]
+    gamma_vals: [1.0]
+    c_vals: [0.0,0.025,0.037,0.061,0.097,0.163,0.359,0.503,0.72]
+    # c_vals: [1.0,0.5,0.25,0.125,0.064,0.032,0.0]
+    # c_vals: [0.0,0.032]
     t_span: [0, 5]
     save_data: true
     
   Input_gain_beta1:
     enabled: False
     beta1_vals: [0.50,0.75,1.0,1.25,1.5]
-    c_vals: [0.50]
-    # c_vals: [0.00,0.025,0.037,0.061,0.097,0.163,0.359,0.503,0.72]
+    # c_vals: [0.0,0.05]
+    c_vals: [1.0,0.5,0.25,0.125,0.064,0.032,0.0]
     t_span: [0, 6]
     save_data: true
 
 Coherence:
   Feedback_gain:
     enabled: True
-    gamma_vals: [0.0,0.25,0.5,0.75,1.0]
+    gamma_vals: [1.0]
+    c_vals: [0.025,0.037,0.061,0.097,0.163,0.359,0.503,0.72]
     # c_vals: [0.032,0.064,0.125,0.25,0.5,1.0]
-    c_vals: [0.50]
     t_span: [0, 6]
 
   Input_gain_beta1:
     enabled: False
     beta1_vals: [0.50,0.75,1.0,1.25,1.5]
-    c_vals: [0.50]
-    # c_vals: [0.025,0.037,0.061,0.097,0.163,0.359,0.503,0.72]
+    # c_vals: [0.05]
+    c_vals: [1.0,0.5,0.25,0.125,0.064,0.032,0.0]
     t_span: [0, 6]
 

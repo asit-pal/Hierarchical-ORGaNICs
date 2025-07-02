@@ -2,9 +2,36 @@ import os
 import sys
 import numpy as np
 import matplotlib.pyplot as plt
-import argparse
 import matplotlib.colors as mcolors
-# from Plotting import plot_power_spectra_fixed_gamma
+import argparse
+
+# Add project root to Python path if necessary
+project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(project_root)
+
+from Plotting import setup_plot_params
+
+# Create a color gradient using contrast-based spacing
+contrast_values = np.array([2.5, 3.7, 6.1, 9.7, 16.3, 35.9, 50.3, 72.0])
+# Normalize contrast values to [0,1] range for colormap
+positions = (contrast_values - contrast_values.min()) / (contrast_values.max() - contrast_values.min())
+# Adjust the range of the colormap
+positions = 0.2 + positions * 0.6  # This maps positions to range [0.2, 0.8]
+
+cmap = plt.cm.get_cmap('Reds')
+colors = [cmap(pos) for pos in positions]
+
+# Set up plotting parameters for journal-quality figures
+setup_plot_params()
+plt.rcParams.update({
+    "lines.linewidth": 12,
+    "lines.markersize": 10,
+    "legend.handlelength": 1.5,
+    "legend.handletextpad": 0.2,
+    "legend.labelspacing": 0.1,
+    "figure.constrained_layout.use": True,
+    "axes.prop_cycle": plt.cycler(color=colors)
+})
 
 def plot_fixed_gamma_power_spectra(results_dir, area='V1'):
     """
@@ -57,92 +84,61 @@ def plot_fixed_gamma_power_spectra(results_dir, area='V1'):
     for gamma in gamma_vals:
         print(f"Creating plot for gamma = {gamma}")
         
-        # Create the plot
+        # Create the plot using global rcParams
         fig, ax = plot_power_spectra_fixed_gamma(
             normalized_power_data,
             c_vals,
-            gamma,
-            line_width=5,
-            line_labelsize=42,
-            legendsize=42
+            gamma
         )
         
         # Save the plot
-        save_path = os.path.join(plots_dir, f'power_spectrum_{area}_gamma_{gamma}_{gain_type}.pdf')
-        fig.savefig(save_path, dpi=400, bbox_inches='tight')
+        save_path = os.path.join(plots_dir, f'power_spectrum_gamma_{gamma}_{gain_type}.pdf')
+        fig.savefig(save_path, dpi=400, format='pdf')
         plt.close(fig)
         print(f"Saved plot to: {save_path}")
-        
-def plot_power_spectra_fixed_gamma(power_data, contrast_vals, gamma, line_width=5, line_labelsize=42, legendsize=42):
-    """
-    Plot power spectra for a fixed gamma value across different contrasts.
-    Expects pre-normalized power data (normalized by max power at contrast=1).
-    
-    Args:
-        power_data (dict): Dictionary containing normalized power spectra data
-        contrast_vals (list): List of contrast values to plot
-        gamma (float): The gamma value to plot
-        line_width (int): Width of plotted lines
-        line_labelsize (int): Size of axis labels
-        legendsize (int): Size of legend text
-    """
-    fig, ax = plt.subplots(figsize=(14, 10))
-    
-    # Create a truncated viridis colormap that does not include the last yellow part
-    viridis = plt.get_cmap('viridis')
-    truncated_viridis = mcolors.ListedColormap(viridis(np.linspace(0, 0.8, 256)))
-    
-    norm = mcolors.Normalize(vmin=min(contrast_vals), vmax=max(contrast_vals))
-    
-    for contrast in contrast_vals:
-        key = (gamma, contrast)
-        if key not in power_data:
-            print(f"Warning: No power data found for contrast = {contrast} and gamma = {gamma}")
-            continue
-            
-        data = power_data[key]
-        freq = data['freq']
-        power = data['power']  # Data is already normalized
-        
-        # Get color from truncated colormap
-        color = truncated_viridis(norm(contrast))
-        
-        # Label showing contrast value
-        label = rf'$c={contrast}$'
-        
-        ax.plot(freq, power, lw=line_width, linestyle='-', label=label, color=color)
-    
-    # Add 1/f^4 reference line
-    # Create reference frequencies (avoid 0 for log scale)
-    ref_freqs = np.logspace(0, 3, 1000)  # 1 to 1000 Hz
-    
-    # Create 1/f^4 scaling
-    # Scale amplitude to be visible on the plot (adjust this value as needed)
-    scale_factor = 0.1  
-    ref_power = scale_factor * ref_freqs**(-4)
-    
-    # Plot the reference line
-    ax.plot(ref_freqs, ref_power, 'k--', lw=3, label=r'$1/f^4$')
-    
-    # Fix the LaTeX formatting in labels
-    ax.set_xlabel(r'$\mathrm{Frequency\;(Hz)}$', fontsize=line_labelsize)
-    ax.set_ylabel(r'$\mathrm{Normalized\;V1\;Power}$', fontsize=line_labelsize)
-    ax.tick_params(axis='both', which='major', labelsize=line_labelsize)
-    ax.legend(fontsize=legendsize, loc='best', frameon=False, handletextpad=0.2, handlelength=1.0, labelspacing=0.2)
-    
-    # Set log scales first
-    ax.set_yscale('log')
-    ax.set_xscale('log')
-    
-    # Then set appropriate limits for log scale (can't start at 0)
-    ax.set_xlim(1, 1000)  # Changed from 0 to 1 for lower limit
-    
-    # Add title showing gamma value
-    ax.set_title(rf'$\gamma_1={gamma}$', fontsize=line_labelsize)
 
-    # Use manual adjustment instead of tight_layout
-    plt.subplots_adjust(left=0.15, right=0.95, top=0.95, bottom=0.15)
-    
+def plot_power_spectra_fixed_gamma(power_data, c_vals, gamma, ax=None):
+    """
+    Create a power spectrum plot for a fixed gamma value.
+    Uses global rcParams for styling.
+    If an axis is provided, plot on it; otherwise, create a new figure.
+    """
+    if ax is None:
+        fig, ax = plt.subplots()
+    else:
+        fig = ax.get_figure()
+
+    # Create a list to store legend handles and labels
+    legend_handles = []
+    legend_labels = []
+
+    # Plot power spectrum for each contrast value
+    for c in c_vals:
+        try:
+            data = power_data[(gamma, c)]
+            line = ax.plot(data['freq'], data['power'], '-')[0]
+            legend_handles.append(line)
+            legend_labels.append(f'{(c * 100):.1f}')
+        except KeyError:
+            print(f"Warning: No data for gamma={gamma}, contrast={c}")
+            continue
+
+    # Set labels and limits
+    ax.set_xlabel('Frequency (Hz)')
+    ax.set_ylabel('Normalized power')
+    ax.set_xscale('log')
+    ax.set_yscale('log')
+    ax.set_xlim(1, 100)
+    ax.set_ylim(1e-4, 1)
+
+    # Add legend with contrast as title
+    ax.legend(legend_handles, legend_labels, 
+              bbox_to_anchor=(-0.035, -0.035),
+              loc='lower left',
+              title='Contrast (%)',
+              title_fontsize=plt.rcParams['legend.fontsize'])
+
+    ax.set_box_aspect(1)
     return fig, ax
 
 if __name__ == "__main__":
