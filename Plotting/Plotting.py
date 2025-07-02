@@ -8,93 +8,67 @@ import matplotlib.colors as mcolors
 import numpy as np
 
 
-def plot_steady_states(steady_states, c_vals, gamma_vals, fb_gain, input_gain_beta1, input_gain_beta4, index_y1, index_y4, figsize=(20, 12), line_width=5, labelsize=44, ticksize=44, legendsize=44):
-    fig, axs = plt.subplots(1, 2, figsize=figsize, sharey=False, sharex=False)
-
-    # Convert c_vals to numpy array and ensure it's the right length
-    c_vals = np.array([float(c) for c in c_vals])
-    
-    print(f"\nPlotting dimensions:")
-    print(f"Number of contrast values: {len(c_vals)}")
-    print(f"Number of gamma values: {len(gamma_vals)}")
-    
-    for gamma in gamma_vals:
-        # Get steady states for this gamma value
-        steady_states_gamma = []
-        for c in c_vals:
-            try:
-                state = steady_states[(gamma, c)]
-                steady_states_gamma.append(state)
-            except KeyError:
-                print(f"Warning: Missing data for gamma={gamma}, contrast={c}")
-                continue
-
-        # Convert to numpy arrays for plotting
-        y1_values = np.array([state[index_y1] for state in steady_states_gamma])
-        y4_values = np.array([state[index_y4] for state in steady_states_gamma])
-        x_values = c_vals[:len(steady_states_gamma)] * 100  # Match length with available data
+def setup_plot_params():
+    """Sets up common matplotlib rcParams for journal-quality figures."""
+    plt.rcParams.update({
+        # Text and Font settings
+        # "text.usetex": True,
+        # "font.family": "sans-serif",
+        # "font.sans-serif": ["Helvetica"],
         
-        print(f"For gamma={gamma}:")
-        print(f"  x_values shape: {x_values.shape}")
-        print(f"  y1_values shape: {y1_values.shape}")
+        # # LaTeX preamble
+        # "text.latex.preamble": r"\usepackage{amsmath}",
         
-        if fb_gain:
-            label = rf'$\gamma_1={gamma}$'
-        elif input_gain_beta1:
-            label = rf'$\beta_1={gamma}$'
-        elif input_gain_beta4:
-            label = rf'$\beta_4={gamma}$'
+        # Figure size and DPI
+        "figure.figsize": (20, 15), # width, height
+        "figure.dpi": 300,
+        "savefig.dpi": 400,
+        
+        # Line and marker properties (adjustments might be needed per plot type)
+        "lines.linewidth": 12,  # Example: Keep specific line widths local if they vary significantly
+        # "lines.markersize": 10, # Example: Keep specific marker sizes local if they vary significantly
+        
+        # Axes properties
+        "axes.linewidth": 2,
+        "axes.labelsize": 90,
+        "axes.titlesize": 90,
+        "axes.labelpad": 0,
+        
+        # Tick properties
+        "xtick.major.size": 15,
+        "ytick.major.size": 15,
+        "xtick.minor.size": 10,
+        "ytick.minor.size": 10,
+        "xtick.major.width": 3,
+        "ytick.major.width": 3, # Duplicate? Assuming ytick.major.width
+        "xtick.minor.width": 2,
+        "ytick.minor.width": 2, # Duplicate? Assuming ytick.minor.width
+        "xtick.labelsize": 90,
+        "ytick.labelsize": 90,
+        "xtick.direction": "in",
+        "ytick.direction": "in",
+        
+        # Legend properties
+        "legend.fontsize": 90,
+        "legend.frameon": False,
+        "legend.handlelength": 1.5, # Keep specific legend handle lengths local
+        "legend.handletextpad": 0.3, # Keep specific legend text pads local
+        "legend.labelspacing": 0.1, # Keep specific legend label spacings local
+        
+        # Grid properties
+        "grid.linewidth": 1.5,
+        
+        # Layout
+        "figure.constrained_layout.use": True, # Standardize to True based on other files
+        "figure.autolayout": False,
+        
+        # Error bars
+        "errorbar.capsize": 3,
+        
+        # DO NOT include "axes.prop_cycle" here as it's script-specific
+    })
 
-        # Plot V1 firing rate (y1+)
-        axs[0].plot(x_values, y1_values, '-', lw=line_width, label=label)
-        # Plot V4 firing rate (y4+)
-        axs[1].plot(x_values, y4_values, '-', lw=line_width)
-
-    axs[0].set_xscale('log')
-    axs[1].set_xscale('log')
-
-    axs[0].set_xlabel(r'$\text{Contrast (\%)}$', fontsize=labelsize)
-    axs[1].set_xlabel(r'$\text{Contrast (\%)}$', fontsize=labelsize)
-    axs[0].set_ylabel(r'$\text{Relative firing rate}$', fontsize=labelsize)
-    axs[1].set_ylabel(r'$\text{Relative firing rate}$', fontsize=labelsize)
-
-    # Modify the y-axis ticks density
-    axs[0].yaxis.set_major_locator(ticker.MaxNLocator(6))
-    axs[1].yaxis.set_major_locator(ticker.MaxNLocator(6))
-
-    # Increase the fontsize of ticks
-    axs[0].tick_params(axis='both', which='major', labelsize=ticksize)
-    axs[1].tick_params(axis='both', which='major', labelsize=ticksize)
-
-    axs[0].legend(frameon=False, labelspacing=0.2, loc='upper left', handletextpad=0.3, fontsize=legendsize)
-    axs[0].set_title('V1', fontsize=labelsize)
-    axs[1].set_title('V4', fontsize=labelsize)
     
-    # if fb_gain:
-    #     xticks = [ 1, 10, 100]
-    #     xticklabels = [r'$\textnormal{1}$', r'$\textnormal{10}$', r'$\textnormal{100}$']
-    # elif input_gain_beta1:
-    #     xticks = [ 0.1,1,10,100]
-    #     xticklabels = [r'$\textnormal{0.1}$', r'$\textnormal{1}$', r'$\textnormal{10}$', r'$\textnormal{100}$']
-    # if fb_gain:
-    xticks = [1, 10, 100]
-    xticklabels = [r'$\text{1}$', r'$\text{10}$', r'$\text{100}$']  # Replaced \textnormal with \text
-    # elif input_gain_beta1:
-    #     xticks = [0.1, 1, 10, 100]
-    #     xticklabels = [r'$\text{0.1}$', r'$\text{1}$', r'$\text{10}$', r'$\text{100}$']
-    
-    for ax in axs:
-        ax.set_xticks(xticks)
-        ax.set_xticklabels(xticklabels)
-    
-    try:
-        fig.tight_layout()
-    except:
-        plt.subplots_adjust(left=0.15, right=0.95, top=0.95, bottom=0.15)
-    
-    
-
-    return fig, axs
 
 
 

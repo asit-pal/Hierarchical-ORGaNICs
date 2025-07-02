@@ -420,7 +420,8 @@ def get_steady_states(model, contrast, initial_conditions, t_span=[0, 5], method
     if Jacobian:
         return [soln[i,:,-1] for i in range(model.num_var)]
     else:
-        return [soln[i,int(N/2),-1] for i in range(model.num_var)]
+        # return [soln[i,int(N/2),-1] for i in range(model.num_var)]
+        return [soln[i,:,-1] for i in range(model.num_var)]
 
 
 def Contrast_response_curve(model,fb_gain,input_gain_beta1,input_gain_beta4, c_vals, gamma_vals, method, t_span):

@@ -6,172 +6,260 @@ import argparse
 import matplotlib.colors as mcolors
 # from Plotting import plot_power_spectra 
 
+# Add project root to Python path if necessary (adjust based on your structure)
+project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(project_root)
+
+# Create a color gradient using gray colormap with contrast-based spacing
+gamma_values = np.array([0.00,0.25,0.5,0.75,1.0])
+# Normalize contrast values to [0,1] range for colormap
+positions = (gamma_values - gamma_values.min()) / (gamma_values.max() - gamma_values.min())
+# Adjust the range of the colormap (0.1 to 0.8 for grays)
+positions = 0.3 + positions * 0.7  # This maps positions to range [0.1, 0.8]
+cmap = plt.cm.get_cmap('Blues')
+colors = [cmap(pos) for pos in positions]
+
+# Set up plotting parameters for journal-quality figures
+from Plotting import setup_plot_params # Import the setup function
+
+# Set up common plot parameters
+setup_plot_params()
+# Specific overrides for this script
+plt.rcParams.update({
+    "lines.linewidth": 12,
+    "lines.markersize": 10,
+    "legend.handlelength": 2,
+    "legend.handletextpad": 0.3,
+    "legend.labelspacing": 0.2,
+    "axes.prop_cycle": plt.cycler(color=colors) # Script-specific color cycle
+})
+
+def plot_power_spectra_fixed_contrast(power_data, param_vals, contrast, fb_gain, input_gain_beta1, input_gain_beta4):
+    """
+    Create power spectra plot for a fixed contrast value.
+    """
+    # Create main plot
+    fig, ax = plt.subplots()
+
+    # Create lists for legend
+    legend_handles = []
+    legend_labels = []
+
+    # Plot the data for each parameter value
+    for param in param_vals:
+        key = (param, contrast)
+        if key not in power_data:
+            print(f"Warning: No data found for param={param}, contrast={contrast}")
+            continue
+
+        data = power_data[key]
+        freq = data['freq']
+        normalized_power = data['power']  # Already normalized
+
+        # Plot the data
+        line = ax.plot(freq, normalized_power, '-')[0]
+
+        # Add to legend with appropriate label
+        if fb_gain:
+            # Calculate percentage change relative to baseline 1.0
+            label = f'{param:.2f}'
+        elif input_gain_beta1:
+            # Calculate percentage change relative to baseline 1.0
+            label = f'{param:.2f}'
+        elif input_gain_beta4:
+             # Keep original formatting if needed, or apply similar logic if baseline is known
+            label = f'{param:.2f}'
+
+        legend_handles.append(line)
+        legend_labels.append(label)
+
+    # Configure plot (labels, ticks, legend, etc.)
+    ax.set_xlabel('Frequency (Hz)')
+    ax.set_ylabel('V1 Power Normalized')
+
+    ax.set_xlim(0, 80)
+    # Match grid plot ticks
+    major_xticks = np.array([20, 40, 60, 80])
+    minor_xticks = np.array([10, 30, 50, 70])
+    ax.set_xticks(major_xticks)
+    ax.set_xticks(minor_xticks, minor=True)
+    ax.set_xticklabels([str(x) for x in major_xticks])
+
+    # ax.set_ylim(-0.1, 0.6)
+    # ax.set_ylim(-0.25, 1.0)
+    # ax.set_ylim(-0.1, 0.6)
+    # yticks = np.array([0.0,0.3,0.6])
+    # yticks = np.array([0.0,0.5,1.0])
+    # Match grid plot limits
+    ax.set_ylim(-0.25, 1.05)
+    yticks = np.array([0.0, 0.5, 1.0])
+    ax.set_yticks(yticks)
+    ax.set_yticklabels([f'{y:.1f}' for y in yticks])
+
+    # Set up ticks to match main plot
+    ax.tick_params(axis='both', which='minor', pad=10)
+    ax.tick_params(axis='both', which='major', pad=10)
+
+    # # Enable minor ticks
+    # ax.minorticks_on()
+
+     # Create legend with parameter name as title
+    param_name = ''
+    if fb_gain:
+        param_name = 'Feedback gain'
+    elif input_gain_beta1:
+        param_name = 'Input gain'
+    elif input_gain_beta4:
+        param_name = 'Input gain'
+
+    if param_name:
+        ax.legend(legend_handles, legend_labels,
+                #  loc='center',
+                #  bbox_to_anchor=(0.40, 0.25),
+                 loc='upper right',
+                 title=param_name,
+                 ncol=1,
+                 handlelength=1.5,
+                 columnspacing=1.0,
+                 handletextpad=0.2,
+                 borderaxespad=0.1,
+                 labelspacing=0.25,
+                 title_fontsize=plt.rcParams['legend.fontsize'])
+
+    return fig, ax
+
 def plot_feedback_gain_results(results_dir, area='V1'):
     """
-    Plot power spectra for feedback gain analysis.
-    
+    Plot power spectra results for both feedback gain and input gain beta1.
+
     Args:
-        results_dir (str): Path to the results directory containing data
+        results_dir (str): Path to results directory
         area (str): Brain area to plot ('V1' or 'V2')
     """
-    # Get the data directory path
-    data_dir = os.path.join(results_dir, 'Data')
-    
-    # Debug prints
     print(f"\n=== Starting Power Spectra Analysis for {area} ===")
-    print(f"Results directory: {results_dir}")
-    print(f"Data directory: {data_dir}")
-    
-    # Load power spectra data from the single file
-    gain_type = f'fb_gain_{area.lower()}'
-    power_file = os.path.join(data_dir, f'power_spectra_{gain_type}.npy')
-    if not os.path.exists(power_file):
-        print(f"Error: Power spectra data file not found at {power_file}")
-        sys.exit(1)
-        
-    print(f"Loading power spectra data from: {power_file}")
-    power_data = np.load(power_file, allow_pickle=True).item()
-    
-    # Extract gamma and contrast values from the data
-    gamma_vals = sorted(set(g for g, _ in power_data.keys()))
-    c_vals = sorted(set(c for _, c in power_data.keys()))
-    print(f"\nGamma values found in data: {gamma_vals}")
-    print(f"Contrast values found in data: {c_vals}")
-    
-    # Find normalization factor (maximum power at contrast=1)
-    norm_factor = max(np.max(power_data[key]['power']) for key in power_data.keys())
-    print(f"Global normalization factor (max power at c=1): {norm_factor}")
-    
-    # Normalize all power data by this single factor
-    normalized_power_data = {}
-    for key, data in power_data.items():
-        normalized_power_data[key] = {
-            'freq': data['freq'],
-            'power': data['power'] / norm_factor
-        }
-    
-    # Create plots directory if it doesn't exist
-    plots_dir = os.path.join(results_dir, 'Plots', 'Power_spectra')
+    print(f"Processing directory: {results_dir}")
+
+    # Verify directories exist
+    if not os.path.exists(results_dir):
+        print(f"Error: Results directory not found: {results_dir}")
+        return
+
+    data_dir = os.path.join(results_dir, 'Data')
+    if not os.path.exists(data_dir):
+        print(f"Error: Data directory not found: {data_dir}")
+        return
+
+    # Create plots directory
+    plots_dir = os.path.join(results_dir, 'Plots', 'Power_Spectra')
     os.makedirs(plots_dir, exist_ok=True)
-    
-    # Create plots for each contrast value
-    for contrast in c_vals:
-        print(f"Creating plot for contrast = {contrast}")
-        
-        # Create plots
-        fig, axs = plot_power_spectra(
-            normalized_power_data,
-            gamma_vals,
-            contrast,
-            fb_gain=True,
-            input_gain_beta1=False,
-            input_gain_beta4=False
-        )
-        
-        # Save the figure
-        save_path = os.path.join(plots_dir, f'power_spectra_{area}_{gain_type}_contrast_{contrast}.pdf')
-        fig.savefig(save_path, dpi=400, bbox_inches='tight')
-        plt.close(fig)
-        print(f"Saved plot to: {save_path}")
-def plot_power_spectra_fixed_gamma(power_data, contrast_vals, gamma, line_width=5, line_labelsize=42, legendsize=42):
-    """
-    Plot power spectra for a fixed gamma value across different contrasts.
-    Expects pre-normalized power data (normalized by max power at contrast=1).
-    
-    Args:
-        power_data (dict): Dictionary containing normalized power spectra data
-        contrast_vals (list): List of contrast values to plot
-        gamma (float): The gamma value to plot
-        line_width (int): Width of plotted lines
-        line_labelsize (int): Size of axis labels
-        legendsize (int): Size of legend text
-    """
-    fig, ax = plt.subplots(figsize=(14, 10))
-    
-    # Create a truncated viridis colormap that does not include the last yellow part
-    viridis = plt.get_cmap('viridis')
-    truncated_viridis = mcolors.ListedColormap(viridis(np.linspace(0, 0.8, 256)))
-    
-    norm = mcolors.Normalize(vmin=min(contrast_vals), vmax=max(contrast_vals))
-    
-    for contrast in contrast_vals:
-        key = (gamma, contrast)
-        if key not in power_data:
-            print(f"Warning: No power data found for contrast = {contrast} and gamma = {gamma}")
-            continue
-            
-        data = power_data[key]
-        freq = data['freq']
-        power = data['power']  # Data is already normalized
-        
-        # Get color from truncated colormap
-        color = truncated_viridis(norm(contrast))
-        
-        # Label showing contrast value
-        label = rf'$c={contrast}$'
-        
-        ax.plot(freq, power, lw=line_width, linestyle='-', label=label, color=color)
-    
-    # Fix the LaTeX formatting in labels
-    ax.set_xlabel(r'$\mathrm{Frequency\;(Hz)}$', fontsize=line_labelsize)
-    ax.set_ylabel(r'$\mathrm{Normalized\;V1\;Power}$', fontsize=line_labelsize)
-    ax.tick_params(axis='both', which='major', labelsize=line_labelsize)
-    ax.legend(fontsize=legendsize, loc='best', frameon=False, handletextpad=0.2, handlelength=1.0, labelspacing=0.2)
-    # ax.set_xlim(0,1000)
-    ax.set_yscale('log')
-    ax.set_xscale('log')
-    # Add title showing gamma value
-    ax.set_title(rf'$\gamma_1={gamma}$', fontsize=line_labelsize)
 
-    # Use manual adjustment instead of tight_layout
-    plt.subplots_adjust(left=0.15, right=0.95, top=0.95, bottom=0.15)
-    
-    return fig, ax
+    # Plot feedback gain data if it exists
+    gain_type = f'fb_gain_{area.lower()}'
+    data_file = os.path.join(data_dir, f'power_spectra_{gain_type}.npy')
+    if os.path.exists(data_file):
+        print(f"Loading feedback gain data from: {data_file}")
+        power_data = np.load(data_file, allow_pickle=True).item()
 
-def plot_power_spectra(power_data, gamma_vals, contrast, fb_gain, input_gain_beta1, input_gain_beta4, line_width=5, line_labelsize=42, legendsize=42):
-    # Set the backend to 'Agg' for headless environments
-    
-    
-    fig, ax = plt.subplots(figsize=(14, 10))
-    
-    # Create a truncated viridis colormap that does not include the last yellow part
-    viridis = plt.get_cmap('viridis')
-    truncated_viridis = mcolors.ListedColormap(viridis(np.linspace(0, 0.8, 256)))
-    
-    norm = mcolors.Normalize(vmin=min(gamma_vals), vmax=max(gamma_vals))
-    
-    for gamma in gamma_vals:
-        key = (gamma,contrast) 
-        data = power_data[key]
-        freq = data['freq']
-        power = data['power']
-        
-        # Get color from truncated colormap
-        color = truncated_viridis(norm(gamma))
-        
-        # Determine label based on which gain is being varied
-        if fb_gain:
-            label = rf'$\gamma_1={gamma}$'
-        elif input_gain_beta1:
-            label = rf'$\beta_1={gamma}$'
-        elif input_gain_beta4:
-            label = rf'$\beta_4={gamma}$'
-        
-        # Use solid line style for all cases
-        linestyle = '-'
-        
-        ax.loglog(freq, power, lw=line_width, linestyle=linestyle, label=label, color=color)
-    
-    # Fix the LaTeX formatting in labels
-    ax.set_xlabel(r'$\mathrm{Frequency\;(Hz)}$', fontsize=line_labelsize)
-    ax.set_ylabel(r'$\mathrm{V1\;Power}$', fontsize=line_labelsize)
-    ax.tick_params(axis='both', which='major', labelsize=line_labelsize)
-    ax.legend(fontsize=legendsize, loc='best', frameon=False, handletextpad=0.2, handlelength=1.0, labelspacing=0.2)
+        # Extract gamma and contrast values from the data
+        gamma_vals = sorted(set(g for g, _ in power_data.keys()))
+        c_vals = sorted(set(c for _, c in power_data.keys()))
+        print(f"\nGamma values found in data: {gamma_vals}")
+        print(f"Contrast values found in data: {c_vals}")
 
-    # Use manual adjustment instead of tight_layout
-    plt.subplots_adjust(left=0.15, right=0.95, top=0.95, bottom=0.15)
-    
-    return fig, ax
+        # Get background power (lowest parameter and contrast)
+        min_param = min(gamma_vals)
+        min_contrast = min(c_vals)
+        background_key = (min_param, min_contrast)
+        background_power = power_data[background_key]['power']
+        print(f"Using background from gamma={min_param}, contrast={min_contrast}")
+
+        # Normalize all power data using (power - background)/(power + background)
+        normalized_power_data = {}
+        for key, data in power_data.items():
+            power = data['power']
+            # Avoid division by zero or near-zero if power and background are very close
+
+            normalized_power = (power - background_power) / (power + background_power)
+            # Or handle as appropriate, e.g., np.nan
+            normalized_power_data[key] = {
+                'freq': data['freq'],
+                'power': normalized_power
+            }
+
+        # Create plots for each contrast value (skip lowest contrast as it's background)
+        for contrast in c_vals[1:]:  # Skip lowest contrast
+            print(f"Creating plot for contrast = {contrast}")
+
+            # Create plots using normalized data
+            fig, ax = plot_power_spectra_fixed_contrast(
+                normalized_power_data,
+                gamma_vals,
+                contrast,
+                fb_gain=True,
+                input_gain_beta1=False,
+                input_gain_beta4=False
+            )
+
+            if fig is not None:
+                save_path = os.path.join(plots_dir, f'power_spectra_{gain_type}_contrast_{contrast}.pdf')
+                fig.subplots_adjust(left=0.15, right=0.95, top=0.9, bottom=0.15)
+                fig.savefig(save_path, dpi=400, format='pdf')
+                plt.close(fig)
+                print(f"Saved plot to: {save_path}")
+
+    # Plot input gain beta1 data if it exists
+    gain_type = f'input_gain_beta1_{area.lower()}'
+    data_file = os.path.join(data_dir, f'power_spectra_{gain_type}.npy')
+    if os.path.exists(data_file):
+        print(f"Loading input gain beta1 data from: {data_file}")
+        power_data = np.load(data_file, allow_pickle=True).item()
+
+        # Extract beta1 and contrast values from the data
+        beta1_vals = sorted(set(b for b, _ in power_data.keys()))
+        c_vals = sorted(set(c for _, c in power_data.keys()))
+        print(f"\nBeta1 values found in data: {beta1_vals}")
+        print(f"Contrast values found in data: {c_vals}")
+
+        # Get background power (lowest parameter and contrast)
+        min_param = min(beta1_vals)
+        min_contrast = min(c_vals)
+        background_key = (min_param, min_contrast)
+        background_power = power_data[background_key]['power']
+        print(f"Using background from beta1={min_param}, contrast={min_contrast}")
+
+        # Normalize all power data using (power - background)/(power + background)
+        normalized_power_data = {}
+        for key, data in power_data.items():
+            power = data['power']
+            # Avoid division by zero or near-zero
+
+            normalized_power = (power - background_power) / (power + background_power)
+
+            normalized_power_data[key] = {
+                'freq': data['freq'],
+                'power': normalized_power
+            }
+
+        # Create plots for each contrast value
+        for contrast in c_vals[1:]:  # Skip lowest contrast
+            print(f"Creating plot for contrast = {contrast}")
+
+            # Create plots using normalized data
+            fig, ax = plot_power_spectra_fixed_contrast(
+                normalized_power_data,
+                beta1_vals,
+                contrast,
+                fb_gain=False,
+                input_gain_beta1=True,
+                input_gain_beta4=False
+            )
+
+            if fig is not None:
+                save_path = os.path.join(plots_dir, f'power_spectra_{gain_type}_contrast_{contrast}.pdf')
+                fig.subplots_adjust(left=0.15, right=0.95, top=0.9, bottom=0.15)
+                fig.savefig(save_path, dpi=400, format='pdf')
+                plt.close(fig)
+                print(f"Saved plot to: {save_path}")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Plot power spectra for V1 or V2')
@@ -179,5 +267,5 @@ if __name__ == "__main__":
     parser.add_argument('--area', choices=['V1', 'V2'], default='V1',
                       help='Brain area to plot (V1 or V2)')
     args = parser.parse_args()
-    
+
     plot_feedback_gain_results(args.results_dir, args.area)

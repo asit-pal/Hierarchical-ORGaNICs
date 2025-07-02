@@ -25,9 +25,9 @@ python ${BASE_DIR}/Analysis/Power_spectra_analysis.py "${NEW_CONFIG}" --area V1
 # python ${BASE_DIR}/Analysis/Power_spectra_analysis.py "${NEW_CONFIG}" --area V2
 
 echo "Plotting Power Spectra"
-# python ${BASE_DIR}/Plotting/Plot_PS_fixed_gamma_remove_background_noise.py "${RESULTS_DIR}" --area V1
-# python ${BASE_DIR}/Plotting/Plot_PS_fixed_gamma_remove_background_noise.py "${RESULTS_DIR}" --area V2
-python ${BASE_DIR}/Plotting/Plot_power_spectra_fixed_gamma.py "${RESULTS_DIR}" --area V1
+python ${BASE_DIR}/Plotting/Plot_PS_fixed_gamma_with_power_decay.py "${RESULTS_DIR}" --area V1
+# python ${BASE_DIR}/Plotting/Plot_PS_fixed_gamma_with_power_decay.py "${RESULTS_DIR}" --area V2
+# python ${BASE_DIR}/Plotting/Plot_power_spectra_fixed_gamma.py "${RESULTS_DIR}" --area V1
 # python ${BASE_DIR}/Plotting/Plot_power_spectra_fixed_gamma.py "${RESULTS_DIR}" --area V2
 # python ${BASE_DIR}/Plotting/Plot_power_spectra_fixed_contrast.py "${RESULTS_DIR}" --area V1
 # python ${BASE_DIR}/Plotting/Plot_power_spectra_fixed_contrast.py "${RESULTS_DIR}" --area V2

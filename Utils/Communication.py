@@ -14,7 +14,7 @@ def correlation(J, L, D,bw_y1_y2=False):
 
     ## Full correlation matrix of the neurons
     # P = solve_continuous_lyapunov(J, -np.dot(L, np.dot(Q, L.T))) # The full correlation matrix
-    A = (L @ D @ L.T)
+    A = (L @ D @ L.T) # Q
     P = lyap(J, A)
     
     P = P @ np.eye(P.shape[0]) # To make sure that the matrix is symmetric
@@ -53,7 +53,7 @@ def random_permutation(N1_y_idx, N4_y_idx, V1_s, V1_t, V4_t, ss):
     # Get indices of neurons above threshold
     V1_active = N1_y_idx[V1_rates >= V1_threshold]
     V4_active = N4_y_idx[V4_rates >= V4_threshold]
-    print(len(V1_active), len(V4_active),V1_s,V1_t,V4_t)
+    # print(len(V1_active), len(V4_active),V1_s,V1_t,V4_t)
     # Ensure we have enough active neurons
     if len(V1_active) < (V1_s + V1_t) or len(V4_active) < V4_t:
         raise ValueError("Not enough active neurons above threshold")
@@ -158,56 +158,140 @@ def analysis_ss(mat, V1s_idx, V1t_idx, V2t_idx):
 def performance(P1, P2, P3):
     """
     This function returns the prediction performance as a function of
-    predictive dimensions (using reduced-rank-regression) given the required 
-    correlation matrices.
-    """
+    predictive dimensions (using reduced-rank-regression).
 
-    # Step 1: Calculate the optimal weight matrix using OLS
-    W_opt = np.linalg.inv(P1) @ P3  # Optimal weight matrix (from OLS)
-
-    # Step 2: Calculate the reference error (e_R) using the trace of P2
-    # e_R =  np.trace(P2)  # Reference error
-    # e_R = np.abs(e_R)
-    e_R = np.linalg.norm(P2,'fro')
-    # e_R = np.trace(P2+P1)
-
-    # Step 3: Calculate the predicted covariance of the target using W_opt
-    predicted_cov = W_opt.T @ P1 @ W_opt
-
-    # Step 4: Perform eigenvalue decomposition on the predicted covariance
-    eig_vals, V = np.linalg.eigh(predicted_cov)  # V contains the eigenvectors
-    # Sort eigenvalues and corresponding eigenvectors in descending order
-    idx = np.argsort(eig_vals)[::-1]
-    eig_vals = eig_vals[idx]
-    V = V[:, idx]
-
-    # Step 5: Initialize variables for reduced-rank regression
-    dim = len(eig_vals)
-    dims = np.arange(0, dim)
-    W = {}  # Dictionary to store all rank-reduced weight matrices
-    e = np.zeros(dim)  # Array to store absolute error for each rank
-
-    # Step 6: Reduced-rank-regression by iterating over dimensions
-    for i in dims:
-        # Select the top i eigenvectors for the reduced-rank projection
-        V_i = V[:, :i]
-        # Construct the reduced-rank weight matrix
-        W[i] = W_opt @ V_i @ V_i.T  # Reduced-rank weight matrix
-
-        # Step 7: Calculate the error for the reduced-rank weight matrix
-        # e[i] = np.trace(P2 + W[i].T @ P1 @ W[i] - 2 * W[i].T @ P3)
-        predicted_cov_reduced = W[i].T @ P1 @ W[i]
-        error_matrix = P2 - predicted_cov_reduced
-        e[i] = np.linalg.norm(error_matrix,'fro')
-        # e[i] = np.trace(W[i].T @ P1 @ W[i])
-        # e[i] = np.abs(e[i])
-
-    # Step 8: Calculate prediction performance as 1 - (e / e_R) (MSE/RMSE)
-    pred_perf = 1 - (e / e_R)
+    The performance for a rank-i approximation is calculated based on the
+    simplified formula:
     
-    # pred_perf = 1- e/6
-    # pred_perf = e/e_R
-    # pred_perf = e_R/e -1
+    Performance(i) = sum_{j=1 to i} lambda_j(C4) / Tr(C2)
+    
+    where:
+    - C1, C2, C3 are the input covariance matrices corresponding to P1, P2, P3.
+    - C4 = C3^T * C1^-1 * C3 is the covariance of the predicted responses.
+    - lambda_j(C4) are the eigenvalues of C4.
+    - Tr(C2) is the total variance of the target population.
+
+    Args:
+        P1 (np.ndarray): Covariance matrix of the source population, C1 = E[ss^T].
+        P2 (np.ndarray): Covariance matrix of the target population, C2 = E[tt^T].
+        P3 (np.ndarray): Cross-covariance matrix between source and target, C3 = E[st^T].
+
+    Returns:
+        tuple: A tuple containing:
+            - pred_perf (np.ndarray): The prediction performance for each rank from 0 to dim-1.
+            - dims (np.ndarray): The corresponding dimensions (ranks).
+    """
+    # For clarity, map the input variables to the notation in the derivation
+    C1, C2, C3 = P1, P2, P3
+
+    # --- Step 1: Calculate the predicted covariance matrix, C4 ---
+    # C4 = C3^T * C1^-1 * C3
+    # Using np.linalg.solve(C1, C3) to compute (C1^-1 * C3) is more
+    # numerically stable than computing the inverse directly.
+    try:
+        # Solves for X in C1 @ X = C3, where X = C1^-1 * C3
+        inv_C1_C3 = np.linalg.solve(C1, C3)
+    except np.linalg.LinAlgError:
+        # If C1 is singular or ill-conditioned, use the pseudo-inverse
+        inv_C1_C3 = np.linalg.pinv(C1) @ C3
+    # inv_C1_C3 = np.linalg.inv(C1) @ C3
+    C4 = C3.T @ inv_C1_C3
+
+    # --- Step 2: Calculate the total variance of the target population ---
+    # This is the reference error, epsilon_0 = Tr(C2)
+    total_target_variance = np.trace(C2)
+
+    # The number of dimensions is the size of the target population
+    dim = C2.shape[0]
+    dims = np.arange(0, dim)
+
+    # --- Step 3: Find the eigenvalues of C4 ---
+    # C4 is a covariance matrix, hence it is symmetric. We can use the
+    # more efficient `eigvalsh` for Hermitian (or symmetric) matrices.
+    eig_vals,_ = np.linalg.eigh(C4)
+    # Sort eigenvalues in descending order to find the principal dimensions
+    eig_vals = np.sort(eig_vals)[::-1]
+    
+    # Due to numerical precision, some eigenvalues might be slightly negative.
+    # Since they represent variance, they should be clipped to zero.
+    # eig_vals[eig_vals < 0] = 0
+
+    # --- Step 4: Calculate the cumulative explained variance ---
+    # The numerator, sum_{j=1 to i} lambda_j, is a cumulative sum.
+    cumulative_explained_variance = np.cumsum(eig_vals)
+
+    # --- Step 5: Calculate the final prediction performance ---
+    # Performance for rank i = (cumulative variance up to i) / (total variance)
+    # This array corresponds to ranks 1, 2, ..., dim.
+    pred_perf = np.zeros(dim)
+    # for i in dims:
+    #     eig_vals_i = eig_vals[:i]
+    #     pred_perf[i] = np.sum(eig_vals_i) / total_target_variance
+    
+    perf_for_ranks_1_to_dim = cumulative_explained_variance / total_target_variance
+    
+    # --- Step 6: Format the output to match the original function's structure ---
+    # The output should be for ranks 0, 1, ..., dim-1.
+    
+    
+    # Performance for rank 0 is 0.
+    # For ranks 1 and higher (up to dim-1), populate the array.
+    if dim > 1:
+    #     # The performance for ranks 1..dim-1 are the first dim-1 elements
+        # of the array calculated in the previous step.
+        pred_perf[1:] = perf_for_ranks_1_to_dim[:-1]
+
+    return pred_perf, dims
+
+
+# def performance(P1, P2, P3):
+#     """
+#     This function returns the prediction performance as a function of
+#     predictive dimensions (using reduced-rank-regression) given the required 
+#     correlation matrices.
+#     """
+
+#     # Step 1: Calculate the optimal weight matrix using OLS
+#     W_opt = np.linalg.inv(P1) @ P3  # Optimal weight matrix (from OLS)
+
+#     # Step 2: Calculate the reference error (e_R) using the trace of P2
+#     # e_R =  np.trace(P2)  # Reference error
+#     # e_R = np.abs(e_R)
+#     e_R = np.linalg.norm(P2,'fro')
+#     # e_R = np.trace(P2+P1)
+
+#     # Step 3: Calculate the predicted covariance of the target using W_opt
+#     predicted_cov = W_opt.T @ P1 @ W_opt
+
+#     # Step 4: Perform eigenvalue decomposition on the predicted covariance
+#     eig_vals, V = np.linalg.eigh(predicted_cov)  # V contains the eigenvectors
+#     # Sort eigenvalues and corresponding eigenvectors in descending order
+#     idx = np.argsort(eig_vals)[::-1]
+#     eig_vals = eig_vals[idx]
+#     V = V[:, idx]
+
+#     # Step 5: Initialize variables for reduced-rank regression
+#     dim = len(eig_vals)
+#     dims = np.arange(0, dim)
+#     W = {}  # Dictionary to store all rank-reduced weight matrices
+#     e = np.zeros(dim)  # Array to store absolute error for each rank
+
+#     # Step 6: Reduced-rank-regression by iterating over dimensions
+#     for i in dims:
+#         # Select the top i eigenvectors for the reduced-rank projection
+#         V_i = V[:, :i]
+#         # Construct the reduced-rank weight matrix
+#         W[i] = W_opt @ V_i @ V_i.T  # Reduced-rank weight matrix
+
+#         # Step 7: Calculate the error for the reduced-rank weight matrix
+#         # e[i] = np.trace(P2 + W[i].T @ P1 @ W[i] - 2 * W[i].T @ P3)
+#         predicted_cov_reduced = W[i].T @ P1 @ W[i]
+#         error_matrix = P2 - predicted_cov_reduced
+#         e[i] = np.linalg.norm(error_matrix,'fro')
+
+#     # Step 8: Calculate prediction performance as 1 - (e / e_R) (MSE/RMSE)
+#     pred_perf = 1 - (e / e_R)
+    
 
     return pred_perf, dims
 
@@ -350,58 +434,64 @@ def Calculate_Covariance_mean(model,gamma_vals,contrast,g,fb_gain,input_gain_bet
 ###################### For frequency Decomposition of CS analysis ######################
 
 
-def calculate_pred_performance_freq(model, gamma_vals, contrast,g,fb_gain,input_gain_beta1,input_gain_beta4, method,com_params,  delta_tau, noise, freq, bw_y1_y4=False, t_span=[0, 6]):
+def calculate_pred_performance_freq(model, gamma_vals, contrast_vals, fb_gain, input_gain_beta1, input_gain_beta4, 
+                                     delta_tau, noise_potential, noise_firing_rate, GR_noise, method, com_params,
+                                    freq,  t_span=None):
     N = model.params['N']
     
     initial_conditions = np.ones((model.num_var * N)) * 0.01
-
     performance_data = {}
 
     for gamma in tqdm(gamma_vals):
-        perf_V1 = np.zeros((com_params['num_trials'], len(freq)))  # each trial, each frequency
-        perf_V4 = np.zeros((com_params['num_trials'], len(freq)))  # each trial, each frequency
+        for contrast in tqdm(contrast_vals, leave=False):  # nested progress bar
+            perf_V1 = np.zeros((com_params['num_trials'], len(freq)))  # each trial, each frequency
+            perf_V4 = np.zeros((com_params['num_trials'], len(freq)))  # each trial, each frequency
 
-        updated_model = copy.deepcopy(model)
-        if fb_gain:
-            updated_model.params['gamma1'] = gamma
-        elif input_gain_beta1:
-            updated_model.params['beta1'] = gamma
-        elif input_gain_beta4:
-            updated_model.params['beta4'] = gamma
-        
-        updated_model.params['g1'] = g
+            updated_model = copy.deepcopy(model)
+            if fb_gain:
+                updated_model.params['gamma1'] = gamma
+            elif input_gain_beta1:
+                updated_model.params['beta1'] = gamma
+            elif input_gain_beta4:
+                updated_model.params['beta4'] = gamma
 
-        # Compute the Jacobian
-        J, ss = updated_model.get_Jacobian_augmented(contrast,initial_conditions, method, t_span)
-        J = torch.tensor(J, dtype=torch.float32)
+            # Compute the Jacobian and steady state using the updated method
+            J, ss = updated_model.get_Jacobian_augmented(contrast, initial_conditions, method, t_span)
+            J = torch.tensor(J, dtype=torch.float32)
 
-        # Create S and L matrices
-        S = create_S_matrix(updated_model)  # Torch tensor
-        L = create_L_matrix(updated_model, ss, delta_tau, noise)  # Torch tensor
+            # Create S and L matrices using the updated functions
+            S = create_S_matrix(updated_model)  # Should return a Torch tensor for S
+            L = create_L_matrix(updated_model, ss, delta_tau, noise_potential, noise_firing_rate, GR_noise)  # Updated call with new noise parameters
 
-        # Calculate spectral matrix
-        mat_model = matrix_solution(J, L, S)
-        S_fij = mat_model.spectral_matrix(freq, J)
-        S_fij = 2 * torch.real(S_fij)  # Take the real part of the spectral matrix
+            # Calculate spectral matrix using the new Jacobian, L and S
+            mat_model = matrix_solution(J, L, S)
+            S_fij = mat_model.spectral_matrix(freq, J)
+            S_fij = 2 * torch.real(S_fij)  # Take the real part of the spectral matrix
 
-        for kl in range(com_params['num_trials']):
-            V1s_idx, V1t_idx, V4t_idx = random_permutation(com_params['N1_y_idx'], com_params['N4_y_idx'], com_params['V1_s'], com_params['V1_t'], com_params['V4_t'], ss)
-            # Perform analysis for each frequency
-            for f_idx, _ in enumerate(freq):
-                Py = S_fij[f_idx].cpu().numpy()  # Convert to numpy array
-                perf_V1[kl, f_idx], perf_V4[kl, f_idx] = analysis_ss_freq(Py, V1s_idx, V1t_idx, V4t_idx)
+            for kl in range(com_params['num_trials']):
+                V1s_idx, V1t_idx, V4t_idx = random_permutation(
+                    com_params['N1_y_idx'], com_params['N4_y_idx'], 
+                    com_params['V1_s'], com_params['V1_t'], com_params['V4_t'], ss
+                )
+                # Perform analysis for each frequency
+                for f_idx, _ in enumerate(freq):
+                    Py = S_fij[f_idx].cpu().numpy()  # Convert to numpy array
+                    perf_V1[kl, f_idx], perf_V4[kl, f_idx] = analysis_ss_freq(Py, V1s_idx, V1t_idx, V4t_idx)
 
-        # Store performance data in the dictionary
-        performance_data[gamma,contrast] = {
-            'V1': {
-                'mean': np.mean(perf_V1, axis=0),
-                'std': np.std(perf_V1, axis=0),
-            },
-            'V4': {
-                'mean': np.mean(perf_V4, axis=0),
-                'std': np.std(perf_V4, axis=0),
+            # Store performance data in the dictionary, indexed by (gamma, contrast)
+            performance_data[gamma, contrast] = {
+                'V1': {
+                    'mean': np.mean(perf_V1, axis=0),
+                    'std': np.std(perf_V1, axis=0),
+                },
+                'V4': {
+                    'mean': np.mean(perf_V4, axis=0),
+                    'std': np.std(perf_V4, axis=0),
+                }
             }
-        }
+            
+            # Print progress
+            print(f"Completed gamma={gamma:.3f}, contrast={contrast:.3f}")
 
     return performance_data
 
@@ -461,57 +551,58 @@ def analysis_ss_freq(mat, V1s_idx, V1t_idx, V4t_idx):
 
 #################### For Dimensionality vs Frequency analysis ######################
 
-def calculate_dim_vs_freq(model, gamma_vals, contrast,g,fb_gain,input_gain_beta1,input_gain_beta4, method,com_params,  delta_tau, noise, freq,thresold = 0.95, bw_y1_y4=False, t_span=[0, 6]):
+def calculate_dim_vs_freq(model, gamma_vals, contrast_vals, fb_gain, input_gain_beta1, input_gain_beta4, delta_tau, noise_potential, noise_firing_rate, GR_noise, method, com_params, freq, thresold, t_span=[0, 6]):
     N = model.params['N']
     initial_conditions = np.ones((model.num_var * N)) * 0.01
 
     dimension_data = {}
 
     for gamma in tqdm(gamma_vals):
-        dim_V1 = np.zeros((com_params['num_trials'], len(freq)))  # each trial, each frequency
-        dim_V4 = np.zeros((com_params['num_trials'], len(freq)))  # each trial, each frequency
+        for contrast in tqdm(contrast_vals, leave=False): # nested progress bar
+            dim_V1 = np.zeros((com_params['num_trials'], len(freq)))  # each trial, each frequency
+            dim_V4 = np.zeros((com_params['num_trials'], len(freq)))  # each trial, each frequency
 
-        updated_model = copy.deepcopy(model)
-        if fb_gain:
-            updated_model.params['gamma1'] = gamma
-        elif input_gain_beta1:
-            updated_model.params['beta1'] = gamma
-        elif input_gain_beta4:
-            updated_model.params['beta4'] = gamma
-        
-        updated_model.params['g1'] = g
+            updated_model = copy.deepcopy(model)
+            if fb_gain:
+                updated_model.params['gamma1'] = gamma
+            elif input_gain_beta1:
+                updated_model.params['beta1'] = gamma
+            elif input_gain_beta4:
+                updated_model.params['beta4'] = gamma
+            
+            # Compute the Jacobian
+            J, ss = updated_model.get_Jacobian_augmented(contrast,initial_conditions, method, t_span)
+            J = torch.tensor(J, dtype=torch.float32)
 
-        # Compute the Jacobian
-        J, ss = updated_model.get_Jacobian_augmented(contrast,initial_conditions, method, t_span)
-        J = torch.tensor(J, dtype=torch.float32)
+            # Create S and L matrices
+            S = create_S_matrix(updated_model)  # Torch tensor
+            L = create_L_matrix(updated_model, ss, delta_tau, noise_potential, noise_firing_rate, GR_noise)  # Torch tensor
 
-        # Create S and L matrices
-        S = create_S_matrix(updated_model)  # Torch tensor
-        L = create_L_matrix(updated_model, ss, delta_tau, noise)  # Torch tensor
+            # Calculate spectral matrix
+            mat_model = matrix_solution(J, L, S)
+            S_fij = mat_model.spectral_matrix(freq, J)
+            S_fij = 2 * torch.real(S_fij)  # Take the real part of the spectral matrix
 
-        # Calculate spectral matrix
-        mat_model = matrix_solution(J, L, S)
-        S_fij = mat_model.spectral_matrix(freq, J)
-        S_fij = 2 * torch.real(S_fij)  # Take the real part of the spectral matrix
+            for kl in range(com_params['num_trials']):
+                V1s_idx, V1t_idx, V4t_idx = random_permutation(com_params['N1_y_idx'], com_params['N4_y_idx'], com_params['V1_s'], com_params['V1_t'], com_params['V4_t'], ss)
+                # Perform analysis for each frequency
+                for f_idx, _ in enumerate(freq):
+                    Py = S_fij[f_idx].cpu().numpy()  # Convert to numpy array
+                    dim_V1[kl, f_idx], dim_V4[kl, f_idx] = analysis_dim_vs_freq(Py, V1s_idx, V1t_idx, V4t_idx,thresold)
 
-        for kl in range(com_params['num_trials']):
-            V1s_idx, V1t_idx, V4t_idx = random_permutation(com_params['N1_y_idx'], com_params['N4_y_idx'], com_params['V1_s'], com_params['V1_t'], com_params['V4_t'], ss)
-            # Perform analysis for each frequency
-            for f_idx, _ in enumerate(freq):
-                Py = S_fij[f_idx].cpu().numpy()  # Convert to numpy array
-                dim_V1[kl, f_idx], dim_V4[kl, f_idx] = analysis_dim_vs_freq(Py, V1s_idx, V1t_idx, V4t_idx,thresold)
-
-        # Store performance data in the dictionary
-        dimension_data[gamma,contrast] = {
-            'V1': {
-                'mean': np.mean(dim_V1, axis=0),
-                'std': np.std(dim_V1, axis=0),
-            },
-            'V4': {
-                'mean': np.mean(dim_V4, axis=0),
-                'std': np.std(dim_V4, axis=0),
+            # Store performance data in the dictionary
+            dimension_data[gamma,contrast] = {
+                'V1': {
+                    'mean': np.mean(dim_V1, axis=0),
+                    'std': np.std(dim_V1, axis=0),
+                },
+                'V4': {
+                    'mean': np.mean(dim_V4, axis=0),
+                    'std': np.std(dim_V4, axis=0),
+                }
             }
-        }
+            # Print progress
+            print(f"Completed gamma={gamma:.3f}, contrast={contrast:.3f}")
 
     return dimension_data
 
@@ -545,7 +636,7 @@ def Perf_dim_vs_freq(P1, P2, P3,threshold):
     # Find the first dimension where performance exceeds the threshold
     dim_95 = next((dim for dim, perf in zip(dims, pred_perf) if perf >= threshold_perf), None)
     
-    return dim_95 -1
+    return dim_95
 
 def Calculate_Fano_Factor(model, gamma_vals, contrast, g, fb_gain, input_gain_beta1, input_gain_beta4, method, com_params, delta_tau, noise,baseline,poisson, t_span=[0,6]):
     """
