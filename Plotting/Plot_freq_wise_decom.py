@@ -44,7 +44,7 @@ def plot_pred_perf_vs_freq(performance_data, freq, gamma_vals, contrast, fb_gain
 
     custom_handles = []
 
-    linestyles = {'V1': '-', 'V4': '--'}
+    linestyles = {'V1_V1': '-', 'V1_V2': '--'}
 
     for i, gamma in enumerate(gamma_vals):
         key = (gamma, contrast)
@@ -56,21 +56,24 @@ def plot_pred_perf_vs_freq(performance_data, freq, gamma_vals, contrast, fb_gain
         color = param_colors[i % len(param_colors)]
         sample_size = 200
 
-        V1_mean = data['V1']['mean']
-        V1_std = data['V1']['std']
-        V1_sem = V1_std / np.sqrt(sample_size)
-        V4_mean = data['V4']['mean']
-        V4_std = data['V4']['std']
-        V4_sem = V4_std / np.sqrt(sample_size)
+        # Use V1_V1 and V1_V4 data instead of V1 and V4
+        V1_V1_mean = data['V1_V1']['mean']
+        V1_V1_std = data['V1_V1']['std']
+        V1_V1_sem = V1_V1_std / np.sqrt(sample_size)
+        V1_V2_mean = data['V1_V2']['mean']
+        V1_V2_std = data['V1_V2']['std']
+        V1_V2_sem = V1_V2_std / np.sqrt(sample_size)
 
-        ax.fill_between(freq, V1_mean - V1_sem, V1_mean + V1_sem,
+        # Plot V1-V1 communication
+        ax.fill_between(freq, V1_V1_mean - V1_V1_sem, V1_V1_mean + V1_V1_sem,
                        color=color, alpha=0.1)
-        ax.plot(freq, V1_mean, linestyle=linestyles['V1'],
+        ax.plot(freq, V1_V1_mean, linestyle=linestyles['V1_V1'],
                 color=color)
 
-        ax.fill_between(freq, V4_mean - V4_sem, V4_mean + V4_sem,
+        # Plot V1-V4 communication
+        ax.fill_between(freq, V1_V2_mean - V1_V2_sem, V1_V2_mean + V1_V2_sem,
                        color=color, alpha=0.1)
-        ax.plot(freq, V4_mean, linestyle=linestyles['V4'],
+        ax.plot(freq, V1_V2_mean, linestyle=linestyles['V1_V2'],
                 color=color)
 
         if fb_gain:
@@ -89,10 +92,10 @@ def plot_pred_perf_vs_freq(performance_data, freq, gamma_vals, contrast, fb_gain
     ax.add_artist(legend1)
 
     line_legend = [
-        mlines.Line2D([0], [0], color='black', linestyle=linestyles['V1'],
+        mlines.Line2D([0], [0], color='black', linestyle=linestyles['V1_V1'],
                      label='V1-V1'),
-        mlines.Line2D([0], [0], color='black', linestyle=linestyles['V4'],
-                     label='V1-V4')
+        mlines.Line2D([0], [0], color='black', linestyle=linestyles['V1_V2'],
+                     label='V1-V2')
     ]
     legend2 = ax.legend(handles=line_legend, loc='upper right',
                        bbox_to_anchor=(0.98, 0.85),
@@ -129,12 +132,13 @@ def plot_V1V4_pred_perf_vs_freq_by_contrast(performance_data, freq, gamma, contr
 
         data = performance_data[key]
 
-        V4_mean = data['V4']['mean']
-        V4_std = data['V4']['std']
+        # Use V1_V4 data instead of V4
+        V1_V2_mean = data['V1_V2']['mean']
+        V1_V2_std = data['V1_V2']['std']
 
-        line, = ax.plot(freq, V4_mean, label=f'{(contrast * 100):.1f}')
+        line, = ax.plot(freq, V1_V2_mean, label=f'{(contrast * 100):.1f}')
         line_color = line.get_color()
-        ax.fill_between(freq, V4_mean - 0.5*V4_std, V4_mean + 0.5*V4_std,
+        ax.fill_between(freq, V1_V2_mean - 0.5*V1_V2_std, V1_V2_mean + 0.5*V1_V2_std,
                        color=line_color, alpha=0.2)
         legend_handles.append(line)
         legend_labels.append(f'{(contrast * 100):.1f}')

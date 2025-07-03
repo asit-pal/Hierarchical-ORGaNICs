@@ -27,7 +27,7 @@ def correlation(J, L, D,bw_y1_y2=False):
     return P
 
 # def random_permutation(N1_y_idx, N2_y_idx, n_V1_s, n_V1_t, n_V2_t):
-def random_permutation(N1_y_idx, N4_y_idx, V1_s, V1_t, V4_t, ss):
+def random_permutation(N1_y_idx, N4_y_idx, V1_s, V1_t, V4_s, V4_t, ss):
     """
     Randomly select neurons for analysis, considering only those with significant activity.
     
@@ -36,6 +36,7 @@ def random_permutation(N1_y_idx, N4_y_idx, V1_s, V1_t, V4_t, ss):
         N4_y_idx: Indices for V4 neurons
         V1_s: Number of source neurons to select from V1
         V1_t: Number of target neurons to select from V1
+        V4_s: Number of source neurons to select from V4
         V4_t: Number of target neurons to select from V4
         ss: Steady state values containing firing rates
     """
@@ -55,7 +56,7 @@ def random_permutation(N1_y_idx, N4_y_idx, V1_s, V1_t, V4_t, ss):
     V4_active = N4_y_idx[V4_rates >= V4_threshold]
     # print(len(V1_active), len(V4_active),V1_s,V1_t,V4_t)
     # Ensure we have enough active neurons
-    if len(V1_active) < (V1_s + V1_t) or len(V4_active) < V4_t:
+    if len(V1_active) < (V1_s + V1_t) or len(V4_active) < (V4_s + V4_t):
         raise ValueError("Not enough active neurons above threshold")
     
     # Random selection from active neurons
@@ -65,11 +66,12 @@ def random_permutation(N1_y_idx, N4_y_idx, V1_s, V1_t, V4_t, ss):
     # Select required numbers of neurons
     V1s_idx = V1_perm[:V1_s]
     V1t_idx = V1_perm[V1_s:V1_s+V1_t]
-    V4t_idx = V4_perm[:V4_t]
+    V4s_idx = V4_perm[:V4_s]
+    V4t_idx = V4_perm[V4_s:V4_s+V4_t]
     
-    return V1s_idx, V1t_idx, V4t_idx
+    return V1s_idx, V1t_idx, V4s_idx, V4t_idx
 
-def selection_mat(Py, V1s_idx, V1t_idx, V2t_idx): 
+def selection_mat(Py, V1s_idx, V1t_idx, V4s_idx, V4t_idx): 
     """
     Returns the submatrices required for the analysis. See main text for the
     definition of Pi. 
@@ -77,33 +79,40 @@ def selection_mat(Py, V1s_idx, V1t_idx, V2t_idx):
     
     # Extracting the different blocks
 
-    # For V1
-    P1 = Py[np.ix_(V1s_idx, V1s_idx)]
-    P2 = Py[np.ix_(V1t_idx, V1t_idx)]
-    P3 = Py[np.ix_(V1s_idx, V1t_idx)]
+    # For V1-V1 communication
+    P1 = Py[np.ix_(V1s_idx, V1s_idx)]  # V1s to V1s
+    P2 = Py[np.ix_(V1t_idx, V1t_idx)]  # V1t to V1t
+    P3 = Py[np.ix_(V1s_idx, V1t_idx)]  # V1s to V1t
 
-    # For V2
-    P4 = Py[np.ix_(V2t_idx, V2t_idx)]
-    P5 = Py[np.ix_(V1s_idx, V2t_idx)]
+    # For V1-V4 communication
+    P4 = Py[np.ix_(V4t_idx, V4t_idx)]  # V4t to V4t
+    P5 = Py[np.ix_(V1s_idx, V4t_idx)]  # V1s to V4t
+    
+    # For V4-V4 communication
+    P6 = Py[np.ix_(V4s_idx, V4s_idx)]  # V4s to V4s
+    P7 = Py[np.ix_(V4s_idx, V4t_idx)]  # V4s to V4t
 
-    return P1, P2, P3, P4, P5
+    return P1, P2, P3, P4, P5, P6, P7
 
-def analysis_ss(mat, V1s_idx, V1t_idx, V2t_idx):
+def analysis_ss(mat, V1s_idx, V1t_idx, V4s_idx, V4t_idx):
     """
     This function does the analysis to calculate the predictive
     performance as a function of the dimensionality.
     """
     
     # Select the values at randomized row and columns
-    P1, P2, P3, P4, P5 = selection_mat(mat, V1s_idx, V1t_idx, V2t_idx)
+    P1, P2, P3, P4, P5, P6, P7 = selection_mat(mat, V1s_idx, V1t_idx, V4s_idx, V4t_idx)
     
-    # For V1 target
-    perf_V1, dims_V1 = performance(P1, P2, P3)
+    # For V1-V1 communication (V1 source predicting V1 target)
+    perf_V1_V1, dims_V1_V1 = performance(P1, P2, P3)
     
-    # For V2 target
-    perf_V2, dims_V2 = performance(P1, P4, P5)
+    # For V1-V4 communication (V1 source predicting V4 target)
+    perf_V1_V4, dims_V1_V4 = performance(P1, P4, P5)
     
-    return dims_V1, dims_V2, perf_V1, perf_V2
+    # For V4-V4 communication (V4 source predicting V4 target)
+    perf_V4_V4, dims_V4_V4 = performance(P6, P4, P7)
+    
+    return dims_V1_V1, dims_V1_V4, dims_V4_V4, perf_V1_V1, perf_V1_V4, perf_V4_V4
 
 # import numpy as np
 # import numpy as np
@@ -372,31 +381,38 @@ def Calculate_Pred_perf_Dim(model, gamma_vals, contrast_vals, fb_gain, input_gai
             Py = correlation(J, L, D, com_params['bw_y1_y4'])
             # # Upscale the correlation matrix
             # Py = Py * 0.10
-            perf_V1 = np.zeros((com_params['num_trials'], com_params['V1_t']))
-            perf_V4 = np.zeros((com_params['num_trials'], com_params['V4_t']))
+            perf_V1_V1 = np.zeros((com_params['num_trials'], com_params['V1_t']))
+            perf_V1_V4 = np.zeros((com_params['num_trials'], com_params['V4_t']))
+            perf_V4_V4 = np.zeros((com_params['num_trials'], com_params['V4_t']))
             
             for kl in range(com_params['num_trials']):
-                V1s_idx, V1t_idx, V4t_idx = random_permutation(
+                V1s_idx, V1t_idx, V4s_idx, V4t_idx = random_permutation(
                     com_params['N1_y_idx'], 
                     com_params['N4_y_idx'], 
                     com_params['V1_s'],
                     com_params['V1_t'],
+                    com_params['V4_s'],
                     com_params['V4_t'],
                     ss  # Pass steady state to random_permutation
                 )
-                dims_V1, dims_V4, perf_V1[kl, :], perf_V4[kl, :] = analysis_ss(Py, V1s_idx, V1t_idx, V4t_idx)
+                dims_V1_V1, dims_V1_V4, dims_V4_V4, perf_V1_V1[kl, :], perf_V1_V4[kl, :], perf_V4_V4[kl, :] = analysis_ss(Py, V1s_idx, V1t_idx, V4s_idx, V4t_idx)
             
             # Store performance data
             performance_data[gamma, contrast] = {
-                'V1': {
-                    'mean': np.mean(perf_V1, axis=0),
-                    'std': np.std(perf_V1, axis=0),
-                    'dims': dims_V1
+                'V1_V1': {
+                    'mean': np.mean(perf_V1_V1, axis=0),
+                    'std': np.std(perf_V1_V1, axis=0),
+                    'dims': dims_V1_V1
                 },
-                'V4': {
-                    'mean': np.mean(perf_V4, axis=0),
-                    'std': np.std(perf_V4, axis=0),
-                    'dims': dims_V4
+                'V1_V2': {
+                    'mean': np.mean(perf_V1_V4, axis=0),
+                    'std': np.std(perf_V1_V4, axis=0),
+                    'dims': dims_V1_V4
+                },
+                'V2_V2': {
+                    'mean': np.mean(perf_V4_V4, axis=0),
+                    'std': np.std(perf_V4_V4, axis=0),
+                    'dims': dims_V4_V4
                 }
             }
             covariance_data[gamma, contrast] = Py
@@ -406,8 +422,7 @@ def Calculate_Pred_perf_Dim(model, gamma_vals, contrast_vals, fb_gain, input_gai
 def Calculate_Covariance_mean(model,gamma_vals,contrast,g,fb_gain,input_gain_beta1,input_gain_beta4,method,com_params,delta_tau,noise_potential,noise_firing_rate,GR_noise,t_span=[0,6]):
     N = model.params['N']
     initial_conditions = np.ones((model.num_var * N)) * 0.01
-    S = create_S_matrix(updated_model)
-    D = S**2
+    
     for gamma in tqdm(gamma_vals):
         updated_model = copy.deepcopy(model)
         if fb_gain:
@@ -423,7 +438,8 @@ def Calculate_Covariance_mean(model,gamma_vals,contrast,g,fb_gain,input_gain_bet
         J, ss = updated_model.get_Jacobian_augmented(contrast,initial_conditions, method, t_span)
         
         # Create S and L matrices
-        
+        S = create_S_matrix(updated_model)
+        D = S**2
         L = create_L_matrix(updated_model, ss, delta_tau, noise_potential, noise_firing_rate, GR_noise)
 
         # Compute correlation matrices
@@ -444,8 +460,9 @@ def calculate_pred_performance_freq(model, gamma_vals, contrast_vals, fb_gain, i
 
     for gamma in tqdm(gamma_vals):
         for contrast in tqdm(contrast_vals, leave=False):  # nested progress bar
-            perf_V1 = np.zeros((com_params['num_trials'], len(freq)))  # each trial, each frequency
-            perf_V4 = np.zeros((com_params['num_trials'], len(freq)))  # each trial, each frequency
+            perf_V1_V1 = np.zeros((com_params['num_trials'], len(freq)))  # V1-V1 communication
+            perf_V1_V4 = np.zeros((com_params['num_trials'], len(freq)))  # V1-V4 communication
+            perf_V4_V4 = np.zeros((com_params['num_trials'], len(freq)))  # V4-V4 communication
 
             updated_model = copy.deepcopy(model)
             if fb_gain:
@@ -466,27 +483,31 @@ def calculate_pred_performance_freq(model, gamma_vals, contrast_vals, fb_gain, i
             # Calculate spectral matrix using the new Jacobian, L and S
             mat_model = matrix_solution(J, L, S)
             S_fij = mat_model.spectral_matrix(freq, J)
-            S_fij = 2 * torch.real(S_fij)  # Take the real part of the spectral matrix
+            S_fij = 2 * torch.real(S_fij)
 
             for kl in range(com_params['num_trials']):
-                V1s_idx, V1t_idx, V4t_idx = random_permutation(
+                V1s_idx, V1t_idx, V4s_idx, V4t_idx = random_permutation(
                     com_params['N1_y_idx'], com_params['N4_y_idx'], 
-                    com_params['V1_s'], com_params['V1_t'], com_params['V4_t'], ss
+                    com_params['V1_s'], com_params['V1_t'], com_params['V4_s'], com_params['V4_t'], ss
                 )
                 # Perform analysis for each frequency
                 for f_idx, _ in enumerate(freq):
                     Py = S_fij[f_idx].cpu().numpy()  # Convert to numpy array
-                    perf_V1[kl, f_idx], perf_V4[kl, f_idx] = analysis_ss_freq(Py, V1s_idx, V1t_idx, V4t_idx)
+                    perf_V1_V1[kl, f_idx], perf_V1_V4[kl, f_idx], perf_V4_V4[kl, f_idx] = analysis_ss_freq(Py, V1s_idx, V1t_idx, V4s_idx, V4t_idx)
 
             # Store performance data in the dictionary, indexed by (gamma, contrast)
             performance_data[gamma, contrast] = {
-                'V1': {
-                    'mean': np.mean(perf_V1, axis=0),
-                    'std': np.std(perf_V1, axis=0),
+                'V1_V1': {
+                    'mean': np.mean(perf_V1_V1, axis=0),
+                    'std': np.std(perf_V1_V1, axis=0),
                 },
-                'V4': {
-                    'mean': np.mean(perf_V4, axis=0),
-                    'std': np.std(perf_V4, axis=0),
+                'V1_V4': {
+                    'mean': np.mean(perf_V1_V4, axis=0),
+                    'std': np.std(perf_V1_V4, axis=0),
+                },
+                'V4_V4': {
+                    'mean': np.mean(perf_V4_V4, axis=0),
+                    'std': np.std(perf_V4_V4, axis=0),
                 }
             }
             
@@ -531,22 +552,25 @@ def performance_all_dimensions(P1, P2, P3):
 
     return pred_perf
 
-def analysis_ss_freq(mat, V1s_idx, V1t_idx, V4t_idx):
+def analysis_ss_freq(mat, V1s_idx, V1t_idx, V4s_idx, V4t_idx):
     """
     This function does the analysis to calculate the predictive
     performance as a function of the dimensionality.
     """
     
     # Select the values at randomized row and columns
-    P1, P2, P3, P4, P5 = selection_mat(mat, V1s_idx, V1t_idx, V4t_idx)
+    P1, P2, P3, P4, P5, P6, P7 = selection_mat(mat, V1s_idx, V1t_idx, V4s_idx, V4t_idx)
     
-    # For V1 target
-    perf_V1 = performance_all_dimensions(P1, P2, P3)
+    # For V1-V1 communication (V1 source predicting V1 target)
+    perf_V1_V1 = performance_all_dimensions(P1, P2, P3)
     
-    # For V2 target
-    perf_V4 = performance_all_dimensions(P1, P4, P5)
+    # For V1-V4 communication (V1 source predicting V4 target)
+    perf_V1_V4 = performance_all_dimensions(P1, P4, P5)
     
-    return perf_V1, perf_V4
+    # For V4-V4 communication (V4 source predicting V4 target)
+    perf_V4_V4 = performance_all_dimensions(P6, P4, P7)
+    
+    return perf_V1_V1, perf_V1_V4, perf_V4_V4
 
 
 #################### For Dimensionality vs Frequency analysis ######################
@@ -559,8 +583,9 @@ def calculate_dim_vs_freq(model, gamma_vals, contrast_vals, fb_gain, input_gain_
 
     for gamma in tqdm(gamma_vals):
         for contrast in tqdm(contrast_vals, leave=False): # nested progress bar
-            dim_V1 = np.zeros((com_params['num_trials'], len(freq)))  # each trial, each frequency
-            dim_V4 = np.zeros((com_params['num_trials'], len(freq)))  # each trial, each frequency
+            dim_V1_V1 = np.zeros((com_params['num_trials'], len(freq)))  # V1-V1 communication
+            dim_V1_V4 = np.zeros((com_params['num_trials'], len(freq)))  # V1-V4 communication
+            dim_V4_V4 = np.zeros((com_params['num_trials'], len(freq)))  # V4-V4 communication
 
             updated_model = copy.deepcopy(model)
             if fb_gain:
@@ -584,21 +609,25 @@ def calculate_dim_vs_freq(model, gamma_vals, contrast_vals, fb_gain, input_gain_
             S_fij = 2 * torch.real(S_fij)  # Take the real part of the spectral matrix
 
             for kl in range(com_params['num_trials']):
-                V1s_idx, V1t_idx, V4t_idx = random_permutation(com_params['N1_y_idx'], com_params['N4_y_idx'], com_params['V1_s'], com_params['V1_t'], com_params['V4_t'], ss)
+                V1s_idx, V1t_idx, V4s_idx, V4t_idx = random_permutation(com_params['N1_y_idx'], com_params['N4_y_idx'], com_params['V1_s'], com_params['V1_t'], com_params['V4_s'], com_params['V4_t'], ss)
                 # Perform analysis for each frequency
                 for f_idx, _ in enumerate(freq):
                     Py = S_fij[f_idx].cpu().numpy()  # Convert to numpy array
-                    dim_V1[kl, f_idx], dim_V4[kl, f_idx] = analysis_dim_vs_freq(Py, V1s_idx, V1t_idx, V4t_idx,thresold)
+                    dim_V1_V1[kl, f_idx], dim_V1_V4[kl, f_idx], dim_V4_V4[kl, f_idx] = analysis_dim_vs_freq(Py, V1s_idx, V1t_idx, V4s_idx, V4t_idx, thresold)
 
             # Store performance data in the dictionary
             dimension_data[gamma,contrast] = {
-                'V1': {
-                    'mean': np.mean(dim_V1, axis=0),
-                    'std': np.std(dim_V1, axis=0),
+                'V1_V1': {
+                    'mean': np.mean(dim_V1_V1, axis=0),
+                    'std': np.std(dim_V1_V1, axis=0),
                 },
-                'V4': {
-                    'mean': np.mean(dim_V4, axis=0),
-                    'std': np.std(dim_V4, axis=0),
+                'V1_V4': {
+                    'mean': np.mean(dim_V1_V4, axis=0),
+                    'std': np.std(dim_V1_V4, axis=0),
+                },
+                'V4_V4': {
+                    'mean': np.mean(dim_V4_V4, axis=0),
+                    'std': np.std(dim_V4_V4, axis=0),
                 }
             }
             # Print progress
@@ -606,24 +635,27 @@ def calculate_dim_vs_freq(model, gamma_vals, contrast_vals, fb_gain, input_gain_
 
     return dimension_data
 
-def analysis_dim_vs_freq(mat, V1s_idx, V1t_idx, V4t_idx,threshold):
+def analysis_dim_vs_freq(mat, V1s_idx, V1t_idx, V4s_idx, V4t_idx, threshold):
     """
     This function does the analysis to calculate the predictive
     performance as a function of the dimensionality.
     """
     
     # Select the values at randomized row and columns
-    P1, P2, P3, P4, P5 = selection_mat(mat, V1s_idx, V1t_idx, V4t_idx)
+    P1, P2, P3, P4, P5, P6, P7 = selection_mat(mat, V1s_idx, V1t_idx, V4s_idx, V4t_idx)
     
-    # For V1 target
-    dim_V1 = Perf_dim_vs_freq(P1, P2, P3,threshold)
+    # For V1-V1 communication (V1 source predicting V1 target)
+    dim_V1_V1 = Perf_dim_vs_freq(P1, P2, P3, threshold)
     
-    # For V2 target
-    dim_V4 = Perf_dim_vs_freq(P1, P4, P5,threshold)
+    # For V1-V4 communication (V1 source predicting V4 target)
+    dim_V1_V4 = Perf_dim_vs_freq(P1, P4, P5, threshold)
     
-    return dim_V1, dim_V4
+    # For V4-V4 communication (V4 source predicting V4 target)
+    dim_V4_V4 = Perf_dim_vs_freq(P6, P4, P7, threshold)
     
-def Perf_dim_vs_freq(P1, P2, P3,threshold):
+    return dim_V1_V1, dim_V1_V4, dim_V4_V4
+
+def Perf_dim_vs_freq(P1, P2, P3, threshold):
     """
     Wrapper function that returns the dimension when the prediction performance
     reaches 95% of its highest value.

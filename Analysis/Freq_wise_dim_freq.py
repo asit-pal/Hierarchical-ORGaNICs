@@ -49,12 +49,13 @@ def main(config_file):
     # Set up indices based on simulation type
     N = params['N']
     if Ring_Model.simulate_firing_rates:
-        N1_y = np.arange(N, 2 * N)    # index for y1Plus
-        N4_y = np.arange(3 * N, 4 * N)  # index for y4Plus   
+        # N1_y = np.arange(N, 2 * N)    # index for y1Plus
+        N1_y = np.arange(3*N,4*N) # index for y2plus
+        N4_y = np.arange(3 * N, 4 * N)  # index for y2Plus   
         bw_y1_y4 = False
     else:
-        N1_y = np.arange(0 * N, N)
-        N4_y = np.arange(1 * N, 2 * N)
+        N1_y = np.arange(0 * N, N) # index for y1
+        N4_y = np.arange(1 * N, 2 * N) # index for y2
         bw_y1_y4 = True
 
     # Communication subspace parameters (com_params)
@@ -63,6 +64,7 @@ def main(config_file):
         'tol': 5e-2,
         'V1_s': 30,
         'V1_t': 30,
+        'V4_s': 30,  # Added V4 source neurons
         'V4_t': 30,
         'N1_y_idx': N1_y,
         'N4_y_idx': N4_y,
@@ -106,7 +108,8 @@ def save_dimension_data(dim_data, data_dir, gain_type, freq): # Renamed function
     Save dimension vs frequency analysis data to a single file.
     
     Args:
-        dim_data (dict): Dictionary containing dimension vs frequency analysis data.
+        dim_data (dict): Dictionary containing dimension vs frequency analysis data
+                        for three communication types: V1-V1, V1-V4, and V4-V4.
         data_dir (str): Directory to save the data.
         gain_type (str): Type of gain ('fb_gain' or 'input_gain_beta1').
         freq (torch.Tensor): Frequency tensor.

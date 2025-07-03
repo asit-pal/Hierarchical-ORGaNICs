@@ -41,8 +41,8 @@ Communication:
   Feedback_gain:
     enabled: True
     gamma_vals: [1.0]
-    # c_vals: [0.025,0.037,0.061,0.097,0.163,0.359,0.503,0.72]
-    c_vals: [1.0]
+    c_vals: [0.025,0.037,0.061,0.097,0.163,0.359,0.503,0.72]
+    # c_vals: [1.0]
     t_span: [0, 10]
     save_data: true
 
