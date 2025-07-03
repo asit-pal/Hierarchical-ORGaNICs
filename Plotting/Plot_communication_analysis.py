@@ -137,12 +137,12 @@ def plot_pred_perf_vs_dim(performance_data, gamma_vals, contrast, fb_gain, input
         data = performance_data[gamma, contrast]
         
         # Retrieve V1 and V4 data
-        V1_mean = data['V1']['mean']
-        V1_std = data['V1']['std']
-        V1_dims = data['V1']['dims']
-        V4_mean = data['V4']['mean']
-        V4_std = data['V4']['std']
-        V4_dims = data['V4']['dims']
+        V1_mean = data['V1-V1']['mean']
+        V1_std = data['V1-V1']['std']
+        V1_dims = data['V1-V1']['dims']
+        V4_mean = data['V1-V4']['mean']
+        V4_std = data['V1-V4']['std']
+        V4_dims = data['V1-V4']['dims']
         
         # Calculate SEM
         sample_size = 200

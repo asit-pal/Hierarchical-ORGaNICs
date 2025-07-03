@@ -52,8 +52,8 @@ def get_max_performance(performance_data, gain_vals, contrast):
     for gain in gain_vals:
         if (gain, contrast) in performance_data:
             data = performance_data[(gain, contrast)]
-            v1_mean = data['V1']['mean']
-            v2_mean = data['V4']['mean']
+            v1_mean = data['V1-V1']['mean']
+            v2_mean = data['V1-V4']['mean']
 
             max_perf_v1v1.append(np.max(v1_mean) if len(v1_mean)>0 else np.nan)
             max_perf_v1v2.append(np.max(v2_mean) if len(v2_mean)>0 else np.nan)

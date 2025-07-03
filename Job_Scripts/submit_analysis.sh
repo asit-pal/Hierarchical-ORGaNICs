@@ -32,8 +32,8 @@ export RESULTS_DIR
 echo "Submitting analysis jobs for config ${CONFIG_NUM}"
 
 # # # Submit power spectra analysis (use full path)
-power_analysis_job=$(sbatch ${JOB_SCRIPTS_DIR}/power_analysis_job.sbatch)
-echo "Submitted power spectra analysis job: ${power_analysis_job}"
+# power_analysis_job=$(sbatch ${JOB_SCRIPTS_DIR}/power_analysis_job.sbatch)
+# echo "Submitted power spectra analysis job: ${power_analysis_job}"
 
 # # # # # # # Submit coherence analysis
 # coherence_job=$(sbatch ${JOB_SCRIPTS_DIR}/coherence_analysis_job.sbatch)
@@ -52,8 +52,8 @@ echo "Submitted power spectra analysis job: ${power_analysis_job}"
 # echo "Submitted communication analysis job: ${comm_3_job}"
 
 # # # Submit frequency wise decomposition analysis
-# freq_job=$(sbatch ${JOB_SCRIPTS_DIR}/dimension_vs_freq.sbatch)
-# echo "Submitted dimension vs freq analysis job: ${freq_job}"
+freq_job=$(sbatch ${JOB_SCRIPTS_DIR}/dimension_vs_freq.sbatch)
+echo "Submitted dimension vs freq analysis job: ${freq_job}"
 
 # freq_job=$(sbatch ${JOB_SCRIPTS_DIR}/prediction_perf_vs_freq.sbatch)
 # echo "Submitted prediction perf vs freq analysis job: ${freq_job}"

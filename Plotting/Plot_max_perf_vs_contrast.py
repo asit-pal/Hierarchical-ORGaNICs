@@ -52,8 +52,8 @@ def get_max_performance(performance_data, contrast_vals, gain):
         if (gain, contrast) in performance_data:
             data = performance_data[(gain, contrast)]
             # Find max performance (excluding dim 0 if present)
-            v1_mean = data['V1']['mean']
-            v2_mean = data['V4']['mean'] 
+            v1_mean = data['V1_V1']['mean']
+            v2_mean = data['V1_V4']['mean'] 
             
             # Assuming dimensions start from 1 in the mean array
             max_perf_v1v1.append(np.max(v1_mean) if len(v1_mean)>0 else np.nan)
