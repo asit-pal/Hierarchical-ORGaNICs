@@ -34,6 +34,7 @@ class RingModel:
             self.jacobian_dimension = num_area * num_neurons_per_area
         self.J = None
         self.contrast = None
+        
     @property
     def params(self):
         return self._params

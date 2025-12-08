@@ -8,7 +8,7 @@ from Utils.matrix_spectrum import matrix_solution
 
 def correlation(J, L, D,bw_y1_y2=False):
     """
-    Returns the correlation matrix of the principal neurons in V1 and V2 at
+    Returns the Covariance matrix of the principal neurons in V1 and V2 at
     the specified neuron indices.
     """
 
@@ -302,7 +302,7 @@ def performance(P1, P2, P3):
 #     pred_perf = 1 - (e / e_R)
     
 
-    return pred_perf, dims
+#     return pred_perf, dims
 
 
 # def performance(P1, P2, P3):
@@ -347,6 +347,99 @@ def performance(P1, P2, P3):
 
 #     return pred_perf, dims
 
+
+def analysis_alignment(mat, V1s_idx, V1t_idx, V2s_idx, V2t_idx):
+    """
+    This function does the analysis to calculate the alignment between
+    eigenvectors of C1 and left singular vectors of C3.
+    """
+    
+    # Select the values at randomized row and columns
+    C1, _, C3, _, C5, _, _ = selection_mat(mat, V1s_idx, V1t_idx, V2s_idx, V2t_idx)
+    
+    # For V1-V1 communication
+    # Eigen decomposition for symmetric C1
+    eigvals_C1, eigvecs_C1 = np.linalg.eigh(C1)
+    # SVD for C3 to get left singular vectors
+    U, _, _ = np.linalg.svd(C3)
+    
+    # Sort eigenvectors of C1 by eigenvalue descending
+    idx1 = np.argsort(eigvals_C1)[::-1]
+    eigvecs_C1 = eigvecs_C1[:, idx1]
+
+    # Calculate alignment
+    alignment_v1v1 = np.abs(eigvecs_C1.T @ U)
+    
+    # SVD for C3_v1v4 to get left singular vectors
+    U_C5, _, _ = np.linalg.svd(C5)
+    
+    # Calculate alignment using same C1 eigenvectors from V1-V1
+    alignment_v1v2 = np.abs(eigvecs_C1.T @ U_C5)
+
+    return alignment_v1v1, alignment_v1v2
+
+def Calculate_Alignment(model, gamma_vals, contrast_vals, fb_gain, input_gain_beta1, input_gain_beta4, delta_tau, noise_potential, noise_firing_rate, GR_noise, method, com_params, t_span=[0,6]):
+    N = model.params['N']
+    params = model.params
+    initial_conditions = np.ones((model.num_var * N)) * 0.01
+    alignment_data = {}
+    
+    for contrast in tqdm(contrast_vals):
+        for gamma in tqdm(gamma_vals):
+            updated_params = copy.deepcopy(params)
+            if fb_gain:
+                updated_params['gamma1'] = gamma
+            elif input_gain_beta1:
+                updated_params['beta1'] = gamma
+            elif input_gain_beta4:
+                updated_params['beta4'] = gamma
+            
+            updated_model = copy.deepcopy(model)
+            updated_model.params = updated_params
+            
+            # Get Jacobian and steady state
+            J, ss = updated_model.get_Jacobian_augmented(contrast, initial_conditions, method, t_span)
+            J = torch.tensor(J, dtype=torch.float32)
+            
+            # Create S and L matrices
+            S = create_S_matrix(updated_model)
+            D = S**2
+            L = create_L_matrix(updated_model, ss, delta_tau, noise_potential, noise_firing_rate, GR_noise)
+            
+            # Compute correlation matrices
+            Py = correlation(J, L, D, com_params['bw_y1_y2'])   
+
+            # Initialize storage for alignment matrices over trials
+            align_v1_v1_trials = []
+            align_v1_v2_trials = []
+
+            for _ in range(com_params['num_trials']):
+                V1s_idx, V1t_idx, V2s_idx, V2t_idx = random_permutation(
+                    com_params['N1_y_idx'], 
+                    com_params['N2_y_idx'], 
+                    com_params['V1_s'],
+                    com_params['V1_t'],
+                    com_params['V2_s'],
+                    com_params['V2_t'],
+                    ss
+                )
+                alignment_v1v1, alignment_v1v2 = analysis_alignment(Py, V1s_idx, V1t_idx, V2s_idx, V2t_idx)
+                align_v1_v1_trials.append(alignment_v1v1)
+                align_v1_v2_trials.append(alignment_v1v2)
+            
+            # Store alignment data, averaging over trials
+            alignment_data[gamma, contrast] = {
+                'V1_V1': {
+                    'mean': np.mean(align_v1_v1_trials, axis=0),
+                    'std': np.std(align_v1_v1_trials, axis=0),
+                },
+                'V1_V2': {
+                    'mean': np.mean(align_v1_v2_trials, axis=0),
+                    'std': np.std(align_v1_v2_trials, axis=0),
+                }
+            }
+    
+    return alignment_data
 
 def Calculate_Pred_perf_Dim(model, gamma_vals, contrast_vals, fb_gain, input_gain_beta1, input_gain_beta4, delta_tau, noise_potential, noise_firing_rate, GR_noise, method, com_params, t_span=[0,6]):
     N = model.params['N']
@@ -419,7 +512,7 @@ def Calculate_Pred_perf_Dim(model, gamma_vals, contrast_vals, fb_gain, input_gai
     
     return performance_data, covariance_data
 
-def Calculate_Covariance_mean(model,gamma_vals,contrast,g,fb_gain,input_gain_beta1,input_gain_beta4,method,com_params,delta_tau,noise_potential,noise_firing_rate,GR_noise,t_span=[0,6]):
+def Calculate_Covariance_mean(model,gamma_vals,contrast,fb_gain,input_gain_beta1,input_gain_beta4,method,com_params,delta_tau,noise_potential,noise_firing_rate,GR_noise,t_span=[0,6]):
     N = model.params['N']
     initial_conditions = np.ones((model.num_var * N)) * 0.01
     
@@ -431,8 +524,6 @@ def Calculate_Covariance_mean(model,gamma_vals,contrast,g,fb_gain,input_gain_bet
             updated_model.params['beta1'] = gamma
         elif input_gain_beta4:
             updated_model.params['beta4'] = gamma
-        
-        updated_model.params['g1'] = g
         
         # Get Jacobian
         J, ss = updated_model.get_Jacobian_augmented(contrast,initial_conditions, method, t_span)
@@ -501,11 +592,11 @@ def calculate_pred_performance_freq(model, gamma_vals, contrast_vals, fb_gain, i
                     'mean': np.mean(perf_V1_V1, axis=0),
                     'std': np.std(perf_V1_V1, axis=0),
                 },
-                'V1_V4': {
+                'V1_V2': {
                     'mean': np.mean(perf_V1_V4, axis=0),
                     'std': np.std(perf_V1_V4, axis=0),
                 },
-                'V4_V4': {
+                'V2_V2': {
                     'mean': np.mean(perf_V4_V4, axis=0),
                     'std': np.std(perf_V4_V4, axis=0),
                 }
@@ -621,11 +712,11 @@ def calculate_dim_vs_freq(model, gamma_vals, contrast_vals, fb_gain, input_gain_
                     'mean': np.mean(dim_V1_V1, axis=0),
                     'std': np.std(dim_V1_V1, axis=0),
                 },
-                'V1_V4': {
+                'V1_V2': {
                     'mean': np.mean(dim_V1_V4, axis=0),
                     'std': np.std(dim_V1_V4, axis=0),
                 },
-                'V4_V4': {
+                'V2_V2': {
                     'mean': np.mean(dim_V4_V4, axis=0),
                     'std': np.std(dim_V4_V4, axis=0),
                 }

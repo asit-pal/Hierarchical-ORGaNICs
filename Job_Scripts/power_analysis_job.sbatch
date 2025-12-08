@@ -11,9 +11,9 @@ module purge
 
 # Define base paths
 BASE_DIR="/home/ap6603/Script_analysis"
-RESULTS_DIR="${BASE_DIR}/Results_4/config_${CONFIG_NUM}"
+RESULTS_DIR="${BASE_DIR}/Results_5/config_${CONFIG_NUM}"
 
-singularity exec --overlay /home/ap6603/Pytorch/overlay-15GB-500K.ext3:ro \
+singularity exec --overlay /scratch/ap6603/Pytorch/overlay-15GB-500K.ext3:ro \
     /scratch/work/public/singularity/cuda12.3.2-cudnn9.0.0-ubuntu-22.04.4.sif \
     /bin/bash << EOF
 source /ext3/env.sh

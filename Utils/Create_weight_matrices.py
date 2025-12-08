@@ -19,7 +19,7 @@ def Norm_matrix(N,std_dev,gaussian_height):
 
         # Normalize the row to make the sum of its elements equal to 1.
         convMat[row] /= np.max(convMat[row])
-        convMat[row] = convMat[row]*gaussian_height
+        convMat[row] = convMat[row] * gaussian_height
 
     return (convMat + convMat.T)/2.0
 
@@ -121,9 +121,9 @@ def setup_parameters(config, tau=1e-3, kernel=None, N=36, M=None, tauPlus=1*1e-3
     
     # Changing the weight matrices
     
-    # identity_matrix = np.eye(N)
-    # Wn1 = identity_matrix * 0.0
-    # Wn2 = identity_matrix * 0.0
+    # identity_matrix = np.eye(N) * 1e-6
+    # Wn1 = identity_matrix  
+    # Wn2 = identity_matrix  
     # W14 = 1/np.sqrt(N) * np.ones((N, N))
     # W41 = W14.T
     # W14 = get_W14(N)
@@ -139,8 +139,8 @@ def setup_parameters(config, tau=1e-3, kernel=None, N=36, M=None, tauPlus=1*1e-3
         theta = np.linspace(0, 2 * np.pi, M)
 
     # Encoding matrix: Receptive fields are raised cosine
-    # Wzx = ReceptiveFields(N, theta, M)
-    Wzx = np.ones((N, M))/np.sqrt(N)
+    Wzx = ReceptiveFields(N, theta, M)
+    # Wzx = np.ones((N, M))/np.sqrt(N)
     pars = {
         'N': N, 'M': M,
         'tauY1': tau, 'tauY4': tau,

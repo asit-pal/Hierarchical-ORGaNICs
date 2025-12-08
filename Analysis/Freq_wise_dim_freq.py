@@ -41,7 +41,7 @@ def main(config_file):
         config=config,
         tau=1e-3,
         tauPlus=1e-3,
-        N=36*2,
+        N=36, # default 36*2
         M=None
     )
     Ring_Model = RingModel(params, simulate_firing_rates=True)
@@ -61,11 +61,11 @@ def main(config_file):
     # Communication subspace parameters (com_params)
     com_params = {
         'num_trials':  300,
-        'tol': 5e-2,
-        'V1_s': 30,
-        'V1_t': 30,
-        'V4_s': 30,  # Added V4 source neurons
-        'V4_t': 30,
+        'tol': 5e-2, # default 5e-2
+        'V1_s': 18,  # default 30
+        'V1_t': 18,  # default 30
+        'V4_s': 18,  # default 30
+        'V4_t': 18,  # default 30
         'N1_y_idx': N1_y,
         'N4_y_idx': N4_y,
         'bw_y1_y4': bw_y1_y4
@@ -97,7 +97,7 @@ def main(config_file):
             'RK45',                                       # method
             com_params,                                   # com_params
             freq,                                         # freq
-            0.99,                                        # thresold
+            0.95,                                        # thresold default 0.99
             t_span=t_span
         )
         save_dimension_data(dim_data, data_dir, gain_type, freq) # Changed save function call
