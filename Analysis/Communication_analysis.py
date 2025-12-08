@@ -66,6 +66,7 @@ def main(config_file):
         'num_trials': com_conf.get('num_trials', 200), # Default 200
         'tol': com_conf.get('tol', 5e-2),        # Default 5e-2 (optional)
         'V1_s': com_conf.get('V1_s', 30),         # Default 30
+        'V4_s': com_conf.get('V4_s', 30),         # Default 30
         'V1_t': com_conf.get('V1_t', 30),         # Default 30
         'V4_t': com_conf.get('V4_t', 30),         # Default 30
         'N1_y_idx': N1_y,                          # Depends on model setup

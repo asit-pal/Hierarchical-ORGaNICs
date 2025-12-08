@@ -23,7 +23,7 @@ plt.rcParams.update({
     "legend.labelspacing": 0.1,
 })
 
-def plot_dim_vs_freq(dimension_data, freq, gamma, contrast_vals, fb_gain, input_gain_beta1, input_gain_beta4):
+def plot_dim_vs_freq_v1v2(dimension_data, freq, gamma, contrast_vals, fb_gain, input_gain_beta1, input_gain_beta4):
     """
     Plot dimension versus frequency with a style similar to plot_pred_perf_vs_freq.
     Plots SEM instead of STD.
@@ -48,7 +48,7 @@ def plot_dim_vs_freq(dimension_data, freq, gamma, contrast_vals, fb_gain, input_
     custom_handles = []
     
     # Create line styles for V1 and V4
-    linestyles = {'V1-V4': '-'}  # Solid for V1, Dashed for V4
+    linestyles = {'V1-V2': '-'}  # Solid for V1, Dashed for V4  
     
     for i, contrast in enumerate(contrast_vals):
         key = (gamma, contrast)
@@ -65,9 +65,9 @@ def plot_dim_vs_freq(dimension_data, freq, gamma, contrast_vals, fb_gain, input_
         # V1_std = data['V1']['std']
         # V1_sem = V1_std / np.sqrt(sample_size) 
         
-        V1V4_mean = data['V1_V4']['mean']
-        V1V4_std = data['V1_V4']['std']
-        V1V4_sem = V1V4_std / np.sqrt(sample_size) 
+        V1V2_mean = data['V1_V2']['mean']
+        V1V2_std = data['V1_V2']['std']
+        V1V2_sem = V1V2_std / np.sqrt(sample_size) 
         
         # Fill between for V1 data using SEM
         # ax.fill_between(freq, V1_mean - V1_sem, V1_mean + V1_sem, 
@@ -76,9 +76,9 @@ def plot_dim_vs_freq(dimension_data, freq, gamma, contrast_vals, fb_gain, input_
         #         color=color)
         
         # Fill between for V4 data using SEM
-        ax.fill_between(freq, V1V4_mean - V1V4_sem, V1V4_mean + V1V4_sem, 
+        ax.fill_between(freq, V1V2_mean - V1V2_sem, V1V2_mean + V1V2_sem, 
                        alpha=0.1)
-        ax.plot(freq, V1V4_mean, linestyle=linestyles['V1-V4']
+        ax.plot(freq, V1V2_mean, linestyle=linestyles['V1-V2']
                 )
         
         # Determine label based on which gain is being varied
@@ -128,10 +128,10 @@ def plot_dim_vs_freq(dimension_data, freq, gamma, contrast_vals, fb_gain, input_
     ax.set_xticklabels([str(x) for x in xticks])
 
     # Set y-axis limits and ticks to match Plot_raw_V1V2_coherence.py
-    ax.set_ylim(0.5,3.25)
-    yticks = np.array([ 1,  2,  3])
-    ax.set_yticks(yticks)
-    ax.set_yticklabels([f'{y:.1f}' for y in yticks])
+    # ax.set_ylim(0.5,3.25)
+    # yticks = np.array([ 1,  2,  3])
+    # ax.set_yticks(yticks)
+    # ax.set_yticklabels([f'{y:.1f}' for y in yticks])
 
     # Add tick padding to match Plot_raw_V1V2_coherence.py
     ax.tick_params(axis='both', which='minor', pad=10)
@@ -139,7 +139,7 @@ def plot_dim_vs_freq(dimension_data, freq, gamma, contrast_vals, fb_gain, input_
 
     return fig, ax
 
-def plot_dim_vs_freq_v4v4(dimension_data, freq, gamma, contrast_vals, fb_gain, input_gain_beta1, input_gain_beta4):
+def plot_dim_vs_freq_v2v2(dimension_data, freq, gamma, contrast_vals, fb_gain, input_gain_beta1, input_gain_beta4):
     """
     Plot dimension versus frequency for V4-V4 data with a style similar to plot_pred_perf_vs_freq.
     Plots SEM instead of STD.
@@ -164,7 +164,7 @@ def plot_dim_vs_freq_v4v4(dimension_data, freq, gamma, contrast_vals, fb_gain, i
     custom_handles = []
     
     # Create line styles for V4-V4
-    linestyles = {'V4-V4': '-'}  # Solid line for V4-V4
+    linestyles = {'V2-V2': '-'}  # Solid line for V4-V4
     
     for i, contrast in enumerate(contrast_vals):
         key = (gamma, contrast)
@@ -176,14 +176,14 @@ def plot_dim_vs_freq_v4v4(dimension_data, freq, gamma, contrast_vals, fb_gain, i
 
         sample_size = 200
         # Retrieve V4-V4 dimension data
-        V4V4_mean = data['V4_V4']['mean']
-        V4V4_std = data['V4_V4']['std']
-        V4V4_sem = V4V4_std / np.sqrt(sample_size) 
+        V2V2_mean = data['V2_V2']['mean']
+        V2V2_std = data['V2_V2']['std']
+        V2V2_sem = V2V2_std / np.sqrt(sample_size) 
         
         # Fill between for V4-V4 data using SEM
-        ax.fill_between(freq, V4V4_mean - V4V4_sem, V4V4_mean + V4V4_sem, 
+        ax.fill_between(freq, V2V2_mean - V2V2_sem, V2V2_mean + V2V2_sem, 
                        alpha=0.1)
-        ax.plot(freq, V4V4_mean, linestyle=linestyles['V4-V4']
+        ax.plot(freq, V2V2_mean, linestyle=linestyles['V2-V2']
                 )
         
         # Determine label based on which gain is being varied
@@ -254,7 +254,7 @@ def plot_dimension_frequency_analysis(results_dir):
         print(f"Gamma values found: {gamma}")
         print(f"Contrast values found: {contrast_vals}")
         
-        fig, ax = plot_dim_vs_freq(
+        fig, ax = plot_dim_vs_freq_v1v2(
             dimension_data=dimension_data,
             freq=freq,
             gamma=gamma,
@@ -264,14 +264,14 @@ def plot_dimension_frequency_analysis(results_dir):
             input_gain_beta4=False
         )
         
-        fig.subplots_adjust(left=0.15, right=0.95, top=0.9, bottom=0.15)
-        save_path = os.path.join(plots_dir, f'Dimension_vs_Freq_fb_gain_v1v1.pdf')
+        # fig.subplots_adjust(left=0.15, right=0.95, top=0.9, bottom=0.15)
+        save_path = os.path.join(plots_dir, f'Dimension_vs_Freq_fb_gain_v1v2.pdf')
         fig.savefig(save_path, dpi=400, format='pdf')
         plt.close(fig)
         print(f"Saved plot to: {save_path}")
         
         # Also plot V4-V4 data
-        fig, ax = plot_dim_vs_freq_v4v4(
+        fig, ax = plot_dim_vs_freq_v2v2(
             dimension_data=dimension_data,
             freq=freq,
             gamma=gamma,
@@ -280,8 +280,8 @@ def plot_dimension_frequency_analysis(results_dir):
             input_gain_beta1=False,
             input_gain_beta4=False
         )
-        fig.subplots_adjust(left=0.15, right=0.95, top=0.9, bottom=0.15)
-        save_path = os.path.join(plots_dir, f'Dimension_vs_Freq_fb_gain_v4v4.pdf')
+        # fig.subplots_adjust(left=0.15, right=0.95, top=0.9, bottom=0.15)
+        save_path = os.path.join(plots_dir, f'Dimension_vs_Freq_fb_gain_v2v2.pdf')
         fig.savefig(save_path, dpi=400, format='pdf')
         plt.close(fig)
         print(f"Saved plot to: {save_path}")
