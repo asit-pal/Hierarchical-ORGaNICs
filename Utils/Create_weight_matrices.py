@@ -121,9 +121,9 @@ def setup_parameters(config, tau=1e-3, kernel=None, N=36, M=None, tauPlus=1*1e-3
     
     # Changing the weight matrices
     
-    # identity_matrix = np.eye(N) * 1e-6
-    # Wn1 = identity_matrix  
-    # Wn2 = identity_matrix  
+    identity_matrix = np.eye(N) * 1e-6
+    Wn1 = identity_matrix  
+    Wn2 = identity_matrix  
     # W14 = 1/np.sqrt(N) * np.ones((N, N))
     # W41 = W14.T
     # W14 = get_W14(N)

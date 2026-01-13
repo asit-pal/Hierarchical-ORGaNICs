@@ -73,7 +73,7 @@ class matrix_solution:
         :param freq: frequency tensor
         :return: the PSD matrix
         """
-        freq = torch.logspace(np.log10(1), np.log10(1000), 100) if freq is None else freq
+        freq = torch.logspace(np.log10(1), np.log10(1000), 100) if freq is None else freq # in Hz
         if J is None:
             J = self.J
         if J is None:
@@ -81,7 +81,7 @@ class matrix_solution:
         
         low_pass_add = self.low_pass_add    
         
-        om = (2 * np.pi * freq).to(device)
+        om = (2 * np.pi * freq).to(device) # in rad/s
         m = freq.size(0)
 
         n = self.N # n is total number of neurons in the network 

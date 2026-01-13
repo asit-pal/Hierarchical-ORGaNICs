@@ -529,7 +529,7 @@ def plot_correlation_matrix(config_file):
             cross_spec_np = np.abs(cross_spec_matrix.cpu().numpy())
             
             # Calculate numerical rank
-            rank = np.linalg.matrix_rank(cross_spec_np,rtol=0.05)
+            rank = np.linalg.matrix_rank(cross_spec_np,rtol=0.01)
             ranks_at_freq.append(rank)
             
             
