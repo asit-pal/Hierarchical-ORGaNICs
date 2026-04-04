@@ -4,9 +4,7 @@ from scipy.integrate import solve_ivp
 import autograd.numpy as np
 from autograd import jacobian
 from tqdm import tqdm
-
-def relu(x,rectify):
-        return np.maximum(rectify,x) 
+from Models.Model import relu
 
 class RingModel:
     def __init__(self, params, target_angle=180, simulate_firing_rates=False, rectify=1e-6, epsilon=1e-6):
@@ -73,10 +71,6 @@ class RingModel:
         dp = (1 / tau_p) * (-p + (g1*np.matmul(Wnn1, np.sqrt(yPlus1))) / ( sPlus ) + (g2*np.matmul(Wnn2, np.sqrt(yPlus2))) / ( sPlus ) + uPlus + p * uPlus + alpha *  tau_u * du)
         
         ds = (1 / tau_s) * (-s + np.sqrt(yPlus+self.epsilon))
-        
-        # dbeta = (1 / tau_beta) * (-beta + beta_0)
-        # dgamma1 = (1 / tau_gamma) * (-gamma1 + gamma1_0)
-        # dgamma2 = (1 / tau_gamma) * (-gamma2 + gamma2_0)    
 
         return dy, du, dp, ds
 
