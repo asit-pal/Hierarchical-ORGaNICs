@@ -1,4 +1,7 @@
 #!/bin/bash
+# NOTE: Update BASE_DIR below to point to your local clone of this repository.
+# The sbatch scripts also contain hardcoded paths that must be updated for your
+# HPC environment (singularity container, conda environment, etc.).
 
 # Check if config number is provided
 if [ "$#" -ne 1 ]; then
