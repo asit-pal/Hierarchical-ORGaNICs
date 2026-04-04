@@ -63,23 +63,6 @@ def ReceptiveFields(N,theta,M):
         RFs[idx, :] = abs(rf)
     return RFs
 
-def get_Wy1y2(N,theta):
-    '''Receptive fields matrix'''
-    d = int(N / 2)
-    pint = d - 1
-    if pint < 1:
-        pint = 1
-
-    const = np.sqrt(d / N) * np.sqrt((2 ** (2 * pint) * (math.factorial(pint)) ** 2)
-                                     / (math.factorial(2 * pint) * (pint + 1)))
-    RFs = np.zeros((N, N))
-    for idx in range(N):
-        thetaOffset = idx * 2 * np.pi / N
-        thetaDiff = (theta - thetaOffset) / 2
-        rf = const * np.cos(thetaDiff) ** pint
-        RFs[idx, :] = abs(rf)
-    return RFs
-
 
 def setup_parameters(tau=1e-3,kernel=None, N=36, M=None,tauPlus=1*1e-3, **kwargs):
     '''This function sets up the parameters for the ring model.

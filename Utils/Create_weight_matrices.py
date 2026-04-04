@@ -54,7 +54,6 @@ def ReceptiveFields(N, theta, M):
         RFs[idx, :] = abs(rf)
     return RFs
 
-
 def setup_parameters(config, tau=1e-3, kernel=None, N=36, M=None, tauPlus=1*1e-3, **kwargs):
     '''This function sets up the parameters for the ring model.
     Params:
