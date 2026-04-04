@@ -10,24 +10,21 @@ import os
 import timeit
 from functools import lru_cache
 
-# device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 device = torch.device("cpu")
 torch.set_default_dtype(torch.float64)
 
 def noise_power_spectrum(omega, sigma, tau):
     """
     Calculate the analytical power spectrum of a low-pass filtered white noise.
-    
+
     Args:
-        freq (array): Frequency values in Hz
+        omega (array): Angular frequency values in rad/s
         sigma (float): Noise amplitude
         tau (float): Time constant of the filter in seconds
-        
+
     Returns:
         array: Power spectrum values
     """
-    #angular frequency
-    # omega = 2 * np.pi * freq
     dummy = (sigma**2) / ((1 + (tau * omega)**2)**2)
     return dummy
 
@@ -51,7 +48,7 @@ class matrix_solution:
         self.rho = rho
         self.L = L
         self.noise_mat = (self.L @ self.D @ self.L.T).type(torch.cdouble)
-        
+
         if self.noise_mat.shape != self.J.shape:
             raise ValueError(f"Noise matrix {self.noise_mat.shape} must have the same shape as J {self.J.shape}")
 
@@ -78,13 +75,13 @@ class matrix_solution:
             J = self.J
         if J is None:
             raise ValueError("Jacobian matrix is not defined")
-        
-        low_pass_add = self.low_pass_add    
-        
+
+        low_pass_add = self.low_pass_add
+
         om = (2 * np.pi * freq).to(device)
         m = freq.size(0)
 
-        n = self.N # n is total number of neurons in the network 
+        n = self.N
         S = torch.zeros((m, n, n), dtype=torch.cdouble, device=device)
 
         with torch.no_grad():
@@ -94,10 +91,8 @@ class matrix_solution:
                         torch.transpose(J - 1j * om[i] * torch.eye(n, device=device), 0, 1))
                 if low_pass_add:
                     noise = noise_power_spectrum(om[i].item(), self.noise_sigma, self.noise_tau)
-                    # S[i] += torch.eye(n, device=device) * noise
-                    S[i] += torch.ones((n, n), device=device) * noise 
+                    S[i] += torch.ones((n, n), device=device) * noise
                     S[i] += torch.eye(n, device=device) * noise * self.rho
-                    # S[i] += torch.eye(n, device=device) * self.rho
         return S
 
     def auto_spectrum(self, i=None, freq=None, J=None):
@@ -112,11 +107,6 @@ class matrix_solution:
         freq = torch.logspace(np.log10(0.001), np.log10(1000), 100) if freq is None else freq
 
         S = self.spectral_matrix(freq, J)
-        # m = freq.size(0)
-
-        # Sxx = torch.zeros(m, device=device)
-        # for j in range(m):
-        #     Sxx[j] = torch.squeeze(torch.real(S[j, i, i]))
         Sxx = torch.real(S[:, i, i])
         return Sxx.cpu(), freq
 
@@ -134,11 +124,7 @@ class matrix_solution:
         freq = torch.logspace(np.log10(0.001), np.log10(1000), 100) if freq is None else freq
 
         S = self.spectral_matrix(freq, J)
-        # m = freq.size(0)
         Sxy = S[:, i, j]
-        # Sxy = torch.zeros(m, device=device, dtype=torch.cdouble)
-        # for k in range(m):
-        #     Sxy[k] = torch.squeeze(S[k, i, j])
         return Sxy.cpu(), freq
 
     def coherence(self, i=None, j=None, freq=None, J=None):
@@ -155,15 +141,11 @@ class matrix_solution:
         freq = torch.logspace(np.log10(0.001), np.log10(1000), 100) if freq is None else freq
 
         S = self.spectral_matrix(freq, J)
-        # m = freq.size(0)
         Sxy = S[:, i, j]
         Sxx = S[:, i, i]
         Syy = S[:, j, j]
-        
+
         coh = torch.abs(Sxy)**2 / (Sxx * Syy)
-        # coh = torch.zeros(m, device=device, dtype=torch.cdouble)
-        # for k in range(m):
-        #     coh[k] = torch.squeeze(torch.abs(S[k, i, j])**2 / (torch.real(S[k, i, i]) * torch.real(S[k, j, j])))
         return coh.cpu(), freq
 
 

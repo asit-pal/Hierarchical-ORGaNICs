@@ -103,9 +103,7 @@ def setup_parameters(tau=1e-3,kernel=None, N=36, M=None,tauPlus=1*1e-3, **kwargs
     Wn4 = Norm_matrix(N, std_dev=N/2,gaussian_height=1) # Normalization pool within each layers
     Wn5 = Norm_matrix(N, std_dev=N/2,gaussian_height=1) # Normalization pool within each layers
     # Inter-areal connectivity matrix
-    # theta1 = np.arange(0, 2 * np.pi, 2 * np.pi / 36)
-    # Wy1y2 = Wy1y1**2  # For sabilization by feedback plot
-    W14 = W11 @ W11 # connectivity matrix 
+    W14 = W11 @ W11 # connectivity matrix
     W41 = W14.T # Wy2y1 is transpose of Wy1y2
     W45 = W14
     W54 = W41

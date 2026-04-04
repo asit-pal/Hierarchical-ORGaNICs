@@ -1,6 +1,5 @@
 ## The model
 from scipy.integrate import solve_ivp
-# from Utils.weight_matrix import *
 import autograd.numpy as np
 from autograd import jacobian
 import copy
@@ -212,11 +211,7 @@ class RingModel:
         # Get steady states
         N = self.N
         ss = get_steady_states(self, c, initial_conditions, t_span, method, Jacobian=True)
-        ss = np.array(ss).flatten()  # Flatten the steady state array
-        # add a small constant to the ss of y1Plus and y4Plus
-        # ss[1*N:2*N] = ss[1*N:2*N] + 1e-7
-        # ss[3*N:4*N] = ss[3*N:4*N] + 1e-7 # TODO: change this
-        # ss = ss + (1e-7)
+        ss = np.array(ss).flatten()
         # Set contrast for Jacobian calculation
         self.contrast = c
 
@@ -421,7 +416,6 @@ def get_steady_states(model, contrast, initial_conditions, t_span=[0, 5], method
     if Jacobian:
         return [soln[i,:,-1] for i in range(model.num_var)]
     else:
-        # return [soln[i,int(N/2),-1] for i in range(model.num_var)]
         return [soln[i,:,-1] for i in range(model.num_var)]
 
 
