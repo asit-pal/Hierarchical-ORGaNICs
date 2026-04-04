@@ -1,8 +1,23 @@
-# Results directory
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# IDE / OS
+.DS_Store
+*.swp
+*.swo
+*~
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Results (generated data)
 Results/
-Results_2/
-Results_3/
-Results_4/ 
-Job_scripts/Outputs/
+Results_*/
+
+# Job outputs
 Job_Scripts/Outputs/
+
+# Tests
 Tests/
