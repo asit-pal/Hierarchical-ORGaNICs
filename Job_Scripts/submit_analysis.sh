@@ -8,7 +8,7 @@ fi
 
 # Set config number and paths
 CONFIG_NUM=$1
-BASE_DIR="/home/ap6603/Script_analysis"
+BASE_DIR="/home/ap6603/Hierarchical-ORGaNICs"
 SOURCE_CONFIG="${BASE_DIR}/configs/config.yaml"
 RESULTS_DIR="${BASE_DIR}/Results_5/config_${CONFIG_NUM}"
 NEW_CONFIG="${RESULTS_DIR}/config_${CONFIG_NUM}.yaml"
@@ -32,16 +32,16 @@ export RESULTS_DIR
 echo "Submitting analysis jobs for config ${CONFIG_NUM}"
 
 # # # # Submit power spectra analysis (use full path)
-# power_analysis_job=$(sbatch ${JOB_SCRIPTS_DIR}/power_analysis_job.sbatch)
-# echo "Submitted power spectra analysis job: ${power_analysis_job}"
+power_analysis_job=$(sbatch ${JOB_SCRIPTS_DIR}/power_analysis_job.sbatch)
+echo "Submitted power spectra analysis job: ${power_analysis_job}"
 
 # # # # # # # # Submit coherence analysis
 # coherence_job=$(sbatch ${JOB_SCRIPTS_DIR}/coherence_analysis_job.sbatch)
 # echo "Submitted coherence analysis job: ${coherence_job}"
 
 # # # # # # Submit communication analysis
-comm_job=$(sbatch ${JOB_SCRIPTS_DIR}/communication_analysis_job.sbatch)
-echo "Submitted communication analysis job: ${comm_job}"
+# comm_job=$(sbatch ${JOB_SCRIPTS_DIR}/communication_analysis_job.sbatch)
+# echo "Submitted communication analysis job: ${comm_job}"
 
 # # Submit alignment analysis
 # alignment_job=$(sbatch ${JOB_SCRIPTS_DIR}/Alignment_analysis_job.sbatch)
