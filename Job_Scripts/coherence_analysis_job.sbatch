@@ -12,7 +12,7 @@ module purge
 
 # Define base paths
 BASE_DIR="/home/ap6603/Hierarchical-ORGaNICs"
-RESULTS_DIR="${BASE_DIR}/Results_4/config_${CONFIG_NUM}"
+RESULTS_DIR="${BASE_DIR}/Results_5/config_${CONFIG_NUM}"
 
 singularity exec --nv \
     --overlay /scratch/ap6603/Lightning/overlay-50G-10M.ext3:ro \

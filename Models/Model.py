@@ -33,6 +33,10 @@ class RingModel:
             self.jacobian_dimension = num_area * num_neurons_per_area
         self.J = None
         self.contrast = None
+        # Prospective coding flag for the input drive to V4:
+        #   Delta_x = 0 -> instantaneous input drive z4
+        #   Delta_x = 1 -> prospective (anticipatory) input drive z4'
+        self.Delta_x = params.get('Delta_x', 0)
         
     @property
     def params(self):
@@ -157,9 +161,42 @@ class RingModel:
 
         
         z1 = np.matmul(x, self.params['Wzx'].T) # input to V1
-        z4 = np.matmul( self.params['W41'] , y1Plus) # input to V4
-        
+
+        # V1 dynamics (computed first so we have dy1 / dy1Plus available for prospective coding)
         dy1,du1,dp1,ds1,dbeta1,dgamma1 = self.single_area_computation(y1,y1Plus,u1,u1Plus,p1,p1Plus,s1,s1Plus,beta1,gamma1,z1,y4Plus,n=1,n_next=4) # V1
+
+        # Input drive to V4 with optional prospective (look-ahead) coding.
+        #
+        # The drive z4 = W41 @ y1Plus is built from V1's output, so it carries the lag
+        # of V1's two cascaded leaky-integrator stages:
+        #   - V1 membrane potential y1  (time constant tauY1)
+        #   - V1 firing rate     y1Plus (time constant tauYPlus1)
+        # The look-ahead operator (1 + tau d/dt) inverts one pole each. The product
+        # operator cancels both, recovering the un-lagged V1 drive into V4:
+        #   z4'(t) = (1 + tauY1 d/dt)(1 + tauYPlus1 d/dt) (W41 @ y1Plus)
+        #          = W41 @ [ y1Plus + (tauY1 + tauYPlus1) y1Plus' + tauY1*tauYPlus1 y1Plus'' ]
+        # Delta_x = 0 -> instantaneous drive, Delta_x = 1 -> prospective drive.
+        # NOTE: this compensates V1's lag only; V4's own membrane/rate stages (tauY4,
+        # tauYPlus4) still filter the drive downstream.
+        z4 = np.matmul(self.params['W41'], y1Plus) # input to V4
+        if self.Delta_x:
+            tau_y1 = self.params['tauY1']  # V1 membrane time constant
+            if self.simulate_firing_rates:
+                tau_yp1 = self.params['tauYPlus1']  # V1 firing-rate time constant
+                # y1Plus is a state variable; dy1Plus is its first time derivative (computed above)
+                dy1Plus_dt = dy1Plus
+                # Second time derivative: d/dt[ (1/tau_yp1)(-y1Plus + relu(y1)**2) ]
+                d2y1Plus_dt2 = (1.0 / tau_yp1) * (-dy1Plus_dt + 2 * relu(y1, self.rectify) * dy1)
+                # Correction terms of the two-stage product operator
+                y1Plus_corr = (tau_y1 + tau_yp1) * dy1Plus_dt + tau_y1 * tau_yp1 * d2y1Plus_dt2
+            else:
+                # Non-firing-rate model: y1Plus = relu(y1)**2 is instantaneous (no rate pole),
+                # so only the V1 membrane pole needs compensation.
+                #   d(y1Plus)/dt = 2 * relu(y1) * dy1/dt
+                y1Plus_corr = tau_y1 * (2 * relu(y1, self.rectify) * dy1)
+            z4 = z4 + self.Delta_x * np.matmul(self.params['W41'], y1Plus_corr)
+
+        # V4 dynamics
         dy4,du4,dp4,ds4,dbeta4,dgamma4 = self.single_area_computation(y4,y4Plus,u4,u4Plus,p4,p4Plus,s4,s4Plus,beta4,gamma4,z4,y5Plus,n=4,n_next=5) # V4
            
 

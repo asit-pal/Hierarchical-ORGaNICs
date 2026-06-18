@@ -13,6 +13,7 @@ model_params:
   g4: 0.0
   sigma1: 0.07
   sigma4: 0.07
+  Delta_x: 1   # prospective coding flag for V4 input drive: 0 = instantaneous, 1 = prospective
 
 noise_params:
   tau_f: 0.001
@@ -41,7 +42,8 @@ Communication:
   Feedback_gain:
     enabled: True
     gamma_vals: [1.0]
-    c_vals: [0.025, 0.037, 0.061, 0.097, 0.163, 0.359, 0.503, 0.72]
+    # c_vals: [0.025, 0.037, 0.061, 0.097, 0.163, 0.359, 0.503, 0.72]
+    c_vals: [1.0]
     t_span: [0, 10]
     save_data: true
 
@@ -71,7 +73,8 @@ Coherence:
   Feedback_gain:
     enabled: True
     gamma_vals: [1.0]
-    c_vals: [0.032, 0.064, 0.125, 0.25, 0.5, 1.0]
+    c_vals: [0.025,0.037,0.061,0.097,0.163,0.359,0.503,0.72]
+    # c_vals: [0.032, 0.064, 0.125, 0.25, 0.5, 1.0]
     t_span: [0, 6]
 
   Input_gain_beta1:

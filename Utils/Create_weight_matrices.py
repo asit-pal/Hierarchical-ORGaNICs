@@ -54,7 +54,7 @@ def ReceptiveFields(N, theta, M):
         RFs[idx, :] = abs(rf)
     return RFs
 
-def setup_parameters(config, tau=1e-3, kernel=None, N=36, M=None, tauPlus=1*1e-3, **kwargs):
+def setup_parameters(config, tau=50e-3, kernel=None, N=36, M=None, tauPlus=10e-3, **kwargs):
     '''This function sets up the parameters for the ring model.
     Params:
         config: configuration dictionary from YAML
@@ -72,9 +72,11 @@ def setup_parameters(config, tau=1e-3, kernel=None, N=36, M=None, tauPlus=1*1e-3
     W11 = RescaleEigenvalues(W11) # rescaling eigenvalues to one
 
     # Normalization matrices (set to small identity)
-    identity_matrix = np.eye(N) * 1e-6
-    Wn1 = identity_matrix
-    Wn2 = identity_matrix
+    # identity_matrix = np.eye(N) * 1e-6
+    # Wn1 = identity_matrix
+    # Wn2 = identity_matrix
+    Wn1 = np.ones((N, N))
+    Wn2 = np.ones((N, N))
 
     W44 = W11 # same within area recurrent matrix
     W14 = W11 @ W11 # connectivity matrix
@@ -120,7 +122,8 @@ def setup_parameters(config, tau=1e-3, kernel=None, N=36, M=None, tauPlus=1*1e-3
         'b1': config['model_params']['b1'],
         'b4': config['model_params']['b4'],
         'g1': config['model_params']['g1'],
-        'g4': config['model_params']['g4']
+        'g4': config['model_params']['g4'],
+        'Delta_x': config['model_params'].get('Delta_x', 0)
     }
 
     for k in kwargs:

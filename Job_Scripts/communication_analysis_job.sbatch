@@ -21,14 +21,14 @@ singularity exec --nv \
 source /ext3/env.sh
 cd "${BASE_DIR}"
 
-# echo "Running Communication Analysis"
-# python ${BASE_DIR}/Analysis/Communication_analysis.py "${NEW_CONFIG}"
+echo "Running Communication Analysis"
+python ${BASE_DIR}/Analysis/Communication_analysis.py "${NEW_CONFIG}"
 
 echo "Plotting Communication Analysis"
-# python ${BASE_DIR}/Plotting/Plot_communication_analysis.py "${RESULTS_DIR}"
+python ${BASE_DIR}/Plotting/Plot_communication_analysis.py "${RESULTS_DIR}"
 # python ${BASE_DIR}/Plotting/Plot_max_perf_vs_gain.py "${RESULTS_DIR}"
 
-echo "Plotting Correlation Matrix"
-python ${BASE_DIR}/Analysis/Plot_correlation_matrix.py "${NEW_CONFIG}"
+# echo "Plotting Correlation Matrix"
+# python ${BASE_DIR}/Analysis/Plot_correlation_matrix.py "${NEW_CONFIG}"
 
 EOF
