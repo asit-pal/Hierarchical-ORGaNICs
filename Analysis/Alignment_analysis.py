@@ -38,9 +38,7 @@ def main(config_file):
     
     # Initialize model parameters - using default tau and N since they're not in config
     params = setup_parameters(
-        config=config,
-        tau=1e-3,  # default value
-        tauPlus=1e-3,
+        config=config,  # tau / tauPlus read from config['model_params']
         N=36*2       # default value
     )
     # Initialize model

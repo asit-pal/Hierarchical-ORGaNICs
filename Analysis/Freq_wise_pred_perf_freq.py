@@ -38,9 +38,7 @@ def main(config_file):
     # Initialize model parameters
     # Here we use defaults similar to Communication_analysis.py (e.g. N=36*2)
     params = setup_parameters(
-        config=config,
-        tau=1e-3,
-        tauPlus=1e-3,
+        config=config,  # tau / tauPlus read from config['model_params']
         N=36*2,
         M=None
     )

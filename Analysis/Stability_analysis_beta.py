@@ -36,9 +36,7 @@ def main(config_file):
     os.makedirs(data_dir, exist_ok=True) # Ensure data directory exists
     
     params = setup_parameters(
-        config=config, # The full config is still passed for other parameters setup_parameters might need
-        tau=1e-3, 
-        tauPlus=1e-3,
+        config=config, # tau / tauPlus (and other params) read from config['model_params']
         N=36
     )
 

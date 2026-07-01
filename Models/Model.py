@@ -37,6 +37,15 @@ class RingModel:
         #   Delta_x = 0 -> instantaneous input drive z4
         #   Delta_x = 1 -> prospective (anticipatory) input drive z4'
         self.Delta_x = params.get('Delta_x', 0)
+        # Recurrent-loop look-ahead (within-area Wnn @ sqrt(yPlus)):
+        #   Delta_rec = 0 -> instantaneous recurrent drive
+        #   Delta_rec = 1 -> single-stage membrane look-ahead (1 + tauY d/dt) on recurrent drive
+        # Compensates the membrane pole inside the oscillation-generating loop so the gamma
+        # peak stays fixed as tauY is raised. Firing-rate mode only (otherwise the correction
+        # is implicit in dy). A fractional value applies partial pole compensation.
+        self.Delta_rec = params.get('Delta_rec', 0)
+        if self.Delta_rec and not self.simulate_firing_rates:
+            raise ValueError("Delta_rec recurrent look-ahead requires simulate_firing_rates=True")
         
     @property
     def params(self):
@@ -430,13 +439,29 @@ def get_steady_states(model, contrast, initial_conditions, t_span=[0, 5], method
     x = np.zeros((M))
     x[model.target_angle] = contrast
     
-    # Setup integration time points
-    t_eval = np.arange(t_span[0], t_span[1], params['dt'])
-    
+    # The integration window is specified in absolute seconds but the system relaxes on the
+    # timescale of its SLOWEST time-constant. Scale the window so it always spans the same number
+    # of time-constants as the tau_ref-tuned case; otherwise the slowest variable gets too few
+    # time-constants to settle and the convergence check below fails. The y membrane (tauY1/tauY4)
+    # may be larger than the baseline `tau`, so take the max. At tau_slow == tau_ref scale is 1.
+    tau_ref = 1e-3
+    tau_slow = max(params.get('tau', tau_ref), params.get('tauY1', tau_ref), params.get('tauY4', tau_ref))
+    scale = tau_slow / tau_ref
+    t0, t1 = t_span[0] * scale, t_span[1] * scale
+
+    # Output sampling: scale the step with the window so the number of stored trajectory points
+    # stays bounded (matching the tau_ref case). params['dt'] tracks the fast tauPlus; using it
+    # directly on a scale*-longer window would store scale* more points and blow up memory when
+    # tauY >> tauPlus (OOM). solve_ivp adapts its internal step, so coarser output sampling does
+    # not reduce solver accuracy. The convergence check below stays valid: the last two output
+    # points are out_dt apart and their difference -> 0 at steady state.
+    out_dt = params['dt'] * scale
+    t_eval = np.arange(t0, t1, out_dt)
+
     # Solve system
-    sol = solve_ivp(model.dynm_func, t_span, initial_conditions, 
-                    method=method, t_eval=t_eval, 
-                    args=(x,), vectorized=True, 
+    sol = solve_ivp(model.dynm_func, [t0, t1], initial_conditions,
+                    method=method, t_eval=t_eval,
+                    args=(x,), vectorized=True,
                     rtol=1e-10, atol=1e-10)
     
     # Reshape solution

@@ -1,6 +1,9 @@
 # Model parameters
 model_params:
   num_trials: 250
+  tau: 0.01       # baseline membrane time constant (s) for p/u/s/beta/gamma variables
+  tauPlus: 0.01   # time constant (s) for the *Plus (filtered) variables
+  tauY: 0.01       # membrane time constant (s) for the y1/y4 membrane potentials only
   beta1: 1.0
   beta4: 1.0
   gamma1: 1.0
@@ -13,7 +16,7 @@ model_params:
   g4: 0.0
   sigma1: 0.07
   sigma4: 0.07
-  Delta_x: 1   # prospective coding flag for V4 input drive: 0 = instantaneous, 1 = prospective
+  Delta_x: 0   # prospective coding flag for V4 input drive: 0 = instantaneous, 1 = prospective
 
 noise_params:
   tau_f: 0.001
@@ -24,7 +27,7 @@ noise_params:
   delta_tau: 3.0
   noise_sigma: 0.030
   noise_tau: 0.050
-  low_pass_add: True
+  low_pass_add: False
   rho: 0.10
 
 Gain_modulation:

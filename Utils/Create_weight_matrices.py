@@ -54,14 +54,29 @@ def ReceptiveFields(N, theta, M):
         RFs[idx, :] = abs(rf)
     return RFs
 
-def setup_parameters(config, tau=50e-3, kernel=None, N=36, M=None, tauPlus=10e-3, **kwargs):
+def setup_parameters(config, tau=None, kernel=None, N=36, M=None, tauPlus=None, tauY=None, **kwargs):
     '''This function sets up the parameters for the ring model.
     Params:
         config: configuration dictionary from YAML
+        tau: baseline membrane time constant for the p/u/s/beta/gamma variables.
+             If None, read from config['model_params']['tau'] (falls back to 10e-3 if
+             absent). An explicit value overrides the config.
+        tauPlus: time constant for the *Plus variables. Resolved like tau via
+                 config['model_params']['tauPlus'].
+        tauY: membrane time constant for the y1/y4 membrane potentials only. Resolved
+              like tau via config['model_params']['tauY']; defaults to `tau` if absent.
         kernel: kernel for the within area recurrent matrix
         N: number of neurons
         M: number of stimuli
         kwargs: additional arguments'''
+    # Resolve tau / tauPlus / tauY: explicit argument wins, otherwise read from config.
+    if tau is None:
+        tau = config['model_params'].get('tau', 10e-3)
+    if tauPlus is None:
+        tauPlus = config['model_params'].get('tauPlus', 10e-3)
+    if tauY is None:
+        tauY = config['model_params'].get('tauY', tau)
+
     if kernel is None:
         kernel = [0.02807382, -0.060944743, -0.073386624, 0.41472545, 0.7973934,
                   0.41472545, -0.073386624, -0.060944743, 0.02807382] # qmf 9 kernel
@@ -94,7 +109,7 @@ def setup_parameters(config, tau=50e-3, kernel=None, N=36, M=None, tauPlus=10e-3
 
     pars = {
         'N': N, 'M': M,
-        'tauY1': tau, 'tauY4': tau,
+        'tauY1': tauY, 'tauY4': tauY,
         'tauYPlus1': tauPlus, 'tauYPlus4': tauPlus,
         'tauP1': tau, 'tauP4': tau,
         'tauPPlus1': tauPlus, 'tauPPlus4': tauPlus,
