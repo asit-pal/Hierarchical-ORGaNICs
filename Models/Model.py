@@ -37,16 +37,7 @@ class RingModel:
         #   Delta_x = 0 -> instantaneous input drive z4
         #   Delta_x = 1 -> prospective (anticipatory) input drive z4'
         self.Delta_x = params.get('Delta_x', 0)
-        # Recurrent-loop look-ahead (within-area Wnn @ sqrt(yPlus)):
-        #   Delta_rec = 0 -> instantaneous recurrent drive
-        #   Delta_rec = 1 -> single-stage membrane look-ahead (1 + tauY d/dt) on recurrent drive
-        # Compensates the membrane pole inside the oscillation-generating loop so the gamma
-        # peak stays fixed as tauY is raised. Firing-rate mode only (otherwise the correction
-        # is implicit in dy). A fractional value applies partial pole compensation.
-        self.Delta_rec = params.get('Delta_rec', 0)
-        if self.Delta_rec and not self.simulate_firing_rates:
-            raise ValueError("Delta_rec recurrent look-ahead requires simulate_firing_rates=True")
-        
+
     @property
     def params(self):
         return self._params
