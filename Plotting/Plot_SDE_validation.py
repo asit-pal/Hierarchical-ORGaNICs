@@ -46,6 +46,14 @@ PRETTY = {'y1': r'V1 $y_1$ (membrane)', 'y1Plus': r'V1 $y_1^+$ (rate)',
           'y4': r'V4 $y_4$ (membrane)', 'y4Plus': r'V4 $y_4^+$ (rate)'}
 
 
+def _save(fig, out_path):
+    """Write the PDF plus a PNG -- these are diagnostics, meant to be eyeballed."""
+    fig.savefig(out_path)
+    png_path = os.path.splitext(out_path)[0] + '.png'
+    fig.savefig(png_path)
+    print(f"Saved {out_path} and {os.path.basename(png_path)}")
+
+
 def plot_condition(result, gamma, contrast, out_path):
     """Two-row figure: PSD overlay on top, sim/analytical ratio underneath."""
     freq = result['freq']
@@ -88,9 +96,8 @@ def plot_condition(result, gamma, contrast, out_path):
         fig.suptitle(rf'Analytical vs. SDE power spectra   ($c={contrast}$, '
                      rf'$\gamma_1={gamma}$, {result.get("n_trials_note", "")}'
                      rf'shaded band = $\pm 2$ SEM)', fontsize=14)
-        fig.savefig(out_path)
+        _save(fig, out_path)
         plt.close(fig)
-    print(f"Saved {out_path}")
 
 
 def plot_traces(result, gamma, contrast, out_path, seconds=0.2):
@@ -120,9 +127,8 @@ def plot_traces(result, gamma, contrast, out_path, seconds=0.2):
         axes[-1].set_xlabel('Time (s)')
         fig.suptitle(rf'Deviation from the fixed point, one shared noise realisation '
                      rf'($c={contrast}$, $\gamma_1={gamma}$)', fontsize=14)
-        fig.savefig(out_path)
+        _save(fig, out_path)
         plt.close(fig)
-    print(f"Saved {out_path}")
 
 
 def main(results_dir):
