@@ -24,6 +24,7 @@ Hierarchical ORGaNICs (Oscillatory Recurrent Gated Neural Integrator Circuits) �
 - `Coherence.py`: `Calculate_coherence()`, `Calculate_power_spectra()`, `create_L_matrix()`, `create_S_matrix()`, noise variance helpers
 - `Communication.py`: `correlation()` (Lyapunov equation), `performance()` (reduced-rank regression), `Calculate_Pred_perf_Dim()`, `Calculate_Alignment()`, frequency-wise analysis functions
 - `matrix_spectrum.py`: `matrix_solution` class — computes spectral matrix, auto/cross spectra, coherence from Jacobian + noise matrices
+- `SDE_simulation.py`: direct stochastic integration used to *check* `matrix_spectrum`. `simulate_linear_batch()` (linearised system, exact Van Loan or Euler-Maruyama stepping), `simulate_paired_trial()` (full nonlinear model, optionally driven by the same Wiener path as the linear one), `analytical_psd()`, `welch_psd()`, and two self-tests (`selftest_ou`, `selftest_linear_system`)
 
 ### Analysis Scripts (`Analysis/`)
 Each script is a standalone entry point: `python Analysis/<script>.py path/to/config.yaml`
@@ -31,6 +32,7 @@ Each script is a standalone entry point: `python Analysis/<script>.py path/to/co
 - `Gain_modulation.py`, `Stability_analysis.py`, `Stability_analysis_beta.py`
 - `Freq_wise_dim_freq.py`, `Freq_wise_pred_perf_freq.py`
 - `Alignment_analysis.py`, `Plot_correlation_matrix.py`
+- `SDE_validation.py`: validates the analytical PSD against direct stochastic simulation (see below)
 
 ### Plotting (`Plotting/`)
 - `Plotting.py`: `setup_plot_params()` — shared matplotlib rcParams for journal figures. Exported via `Plotting/__init__.py`
@@ -53,7 +55,7 @@ Each script is a standalone entry point: `python Analysis/<script>.py path/to/co
 
 ### Configuration
 - All analysis parameters come from YAML config files
-- Config sections: `model_params`, `noise_params`, `Gain_modulation`, `Communication`, `Power_spectra`, `Coherence`
+- Config sections: `model_params`, `noise_params`, `Gain_modulation`, `Communication`, `Power_spectra`, `Coherence`, `SDE_validation`
 - Each analysis script checks `config[section]['enabled']` to decide what to run
 
 ### Running Jobs
@@ -64,6 +66,31 @@ bash Job_Scripts/submit_analysis.sh <config_number>
 # Or run a single analysis directly
 python Analysis/Power_spectra_analysis.py Results_5/config_1/config_1.yaml --area V1
 ```
+
+### Validating the analytical power spectra
+The published spectra come from a linearisation about the deterministic fixed point.
+`Analysis/SDE_validation.py` checks that approximation by simulating the SDE directly:
+
+```bash
+python Analysis/SDE_validation.py Results_5/config_1/config_1.yaml --n-jobs 16
+python Plotting/Plot_SDE_validation.py Results_5/config_1
+```
+
+It runs three things and reports them side by side:
+1. **Linear SDE** — `dX = J_aug X dt + L S dW` with the *exact* (Van Loan) discretisation.
+   Tests only the spectral-matrix formula and the PSD normalisation, not the linearisation.
+2. **Full nonlinear SDE** — the real model with the same noise sources injected.
+   Disagreement here, when (1) passes, is the linearisation error.
+3. **Noise-matched pair** — (1) and (2) advanced in one loop consuming *identical*
+   Wiener increments, giving a trajectory-level error `rms(nonlinear - linear)`.
+
+Per-trial Welch PSDs are averaged across trials. Conventions: `matrix_solution` returns the
+two-sided PSD in angular frequency; `scipy.signal.welch` returns the one-sided PSD in Hz, so
+the analytical curve is multiplied by 2 before overlaying (verified by `selftest_ou`).
+
+Sizing matters: `burn_in` must outlast the slowest mode of `J_aug` (~550 ms for the default
+config) and `dt` must be well under the fastest (`tau_f`, 1 ms). The script warns when either
+is violated.
 
 ## HPC Environment
 

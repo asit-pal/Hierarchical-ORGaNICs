@@ -72,6 +72,33 @@ Power_spectra:
     t_span: [0, 6]
     save_data: true
 
+# Validation of the analytical (linearised) power spectra against direct
+# stochastic simulation. See Analysis/SDE_validation.py.
+SDE_validation:
+  enabled: True
+  gamma_vals: [1.0]
+  c_vals: [0.5]
+  t_span: [0, 5]            # window for the deterministic fixed-point solve
+  mode: both                # linear | nonlinear | both
+  integrator: exact         # standalone linear run: exact (Van Loan) or euler
+  dt: 2.0e-5                # nonlinear (Euler) step (s); must be << the fastest time constant
+  dt_linear: 1.0e-4         # exact linear run step (unbiased at any dt); null -> 1/record_fs
+  T: 16.0                   # simulated seconds per trial, after burn-in
+  burn_in: 3.0              # discarded transient (s); must exceed the slowest mode
+  n_trials: 32
+  linear_batch: 8           # trials advanced together in the linear run (caps memory)
+  record_fs: 20000.0        # target sampling rate of the stored traces (Hz)
+  welch_nperseg_sec: 4.0    # Welch segment length (s); must outlast the slowest mode
+  welch_overlap: 0.5
+  min_freq: 1.0
+  max_freq: 200.0
+  report_band: [20.0, 100.0]  # extra sub-band summarised in the report
+  seed: 0
+  n_jobs: 16
+  paired: True              # drive the linear system with the nonlinear run's noise
+  clip_nonneg: True
+  save_traces: True
+
 Coherence:
   Feedback_gain:
     enabled: True

@@ -45,3 +45,7 @@ echo "Submitted power spectra analysis job: ${power_analysis_job}"
 # # Submit communication analysis
 # comm_job=$(sbatch ${JOB_SCRIPTS_DIR}/communication_analysis_job.sbatch)
 # echo "Submitted communication analysis job: ${comm_job}"
+
+# Submit SDE validation of the analytical power spectra
+# sde_job=$(sbatch ${JOB_SCRIPTS_DIR}/sde_validation_job.sbatch)
+# echo "Submitted SDE validation job: ${sde_job}"
