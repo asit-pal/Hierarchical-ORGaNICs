@@ -71,8 +71,70 @@ def _present_labels(result, wanted=LFP_LABELS):
     return [lab for lab in wanted if lab in result['labels']]
 
 
-def plot_psd(result, gamma, contrast, out_path, show_linear=False):
-    """Analytical vs. SDE power spectra for the LFP channels."""
+def _normalised_psd(result, bg, lab, series_key):
+    """(analytical, sde) power curves under the published normalisation.
+
+    `Plot_PS_fixed_gamma_with_power_decay.py` plots the contrast index
+    `(P - P_bg) / (P + P_bg)` against the *lowest* contrast as background, which
+    is what puts the published panel on a linear [-0.25, 1] axis and lets it dip
+    negative. That needs two contrasts; with a single-contrast payload the index
+    is undefined, so this falls back to `P / max(P_analytical)`.
+
+    Either way both curves share one normaliser. Normalising each by its own
+    maximum would hide precisely the scale error this figure exists to detect.
+    """
+    p_ana = result['analytical'][lab]
+    p_sde = result[series_key][lab]['mean']
+    if bg is not None:
+        b_ana = bg['analytical'][lab]
+        b_sde = bg[series_key][lab]['mean']
+        return ((p_ana - b_ana) / (p_ana + b_ana),
+                (p_sde - b_sde) / (p_sde + b_sde))
+    scale = p_ana.max()
+    return p_ana / scale, p_sde / scale
+
+
+def _style_freq_axis(ax, f_max=80.0):
+    """Linear 0-80 Hz with the tick layout the published panels use."""
+    ax.set_xlim(0, f_max)
+    ticks = np.arange(0, f_max + 1, 20)
+    ax.set_xticks(ticks)
+    ax.set_xticks(np.arange(0, f_max + 1, 10), minor=True)
+    ax.set_xticklabels([str(int(t)) for t in ticks])
+    ax.set_xlabel('Frequency (Hz)')
+    ax.grid(True, ls=':', alpha=0.35)
+
+
+def _add_loglog_inset(ax, freq, ana, sde, alpha_ref=4.0, shift=5.0):
+    """Full-range log-log power with a 1/f^alpha guide, as in the published inset.
+
+    Normalised by the analytical maximum so both curves share one scale. The
+    guide is anchored at half the top frequency and offset by `shift` for
+    legibility, matching the published construction.
+    """
+    inset = ax.inset_axes([0.62, 0.62, 0.36, 0.36])
+    scale = ana.max()
+    inset.loglog(freq, ana / scale, color='k', lw=1.6)
+    inset.loglog(freq, sde / scale, color='#DC143C', lw=1.0)
+
+    f_anchor = min(300.0, 0.5 * freq.max())
+    anchor = (ana / scale)[np.abs(freq - f_anchor).argmin()]
+    guide_f = np.array([f_anchor, freq.max()])
+    guide = anchor * (f_anchor / guide_f) ** alpha_ref / shift
+    inset.loglog(guide_f, guide, dashes=[4, 2], color='red', lw=1.4)
+    inset.text(f_anchor * 0.75, guide[-1] * 1.6, rf'$1/f^{{{int(alpha_ref)}}}$',
+               color='red', fontsize=9, ha='center', va='bottom')
+
+    inset.set_xlim(1, freq.max())
+    inset.set_xlabel('Frequency', labelpad=1, fontsize=9)
+    inset.set_ylabel('Power', labelpad=1, fontsize=9)
+    inset.tick_params(labelsize=8)
+    inset.set_box_aspect(1)
+    return inset
+
+
+def plot_psd(result, gamma, contrast, out_path, show_linear=False, bg=None):
+    """Analytical vs. SDE power spectra on the published axes."""
     freq = result['freq']
     labels = _present_labels(result)
     if not labels:
@@ -80,28 +142,44 @@ def plot_psd(result, gamma, contrast, out_path, show_linear=False):
         return
 
     with plt.rc_context(DIAG_RC):
-        fig, axes = plt.subplots(1, len(labels), figsize=(6.0 * len(labels), 5.0),
-                                 sharex=True)
+        fig, axes = plt.subplots(1, len(labels), figsize=(6.4 * len(labels), 5.4))
         axes = np.atleast_1d(axes)
         for ax, lab in zip(axes, labels):
-            ax.loglog(freq, result['analytical'][lab], **ANALYTICAL_KW)
-            ax.loglog(freq, result['sde_nonlinear'][lab]['mean'], **NONLINEAR_KW)
+            ana, sde = _normalised_psd(result, bg, lab, 'sde_nonlinear')
+            ax.plot(freq, ana, **ANALYTICAL_KW)
+            ax.plot(freq, sde, **NONLINEAR_KW)
             if show_linear:
                 for key, name, colour, style in LINEAR_SERIES:
                     if key in result:
-                        ax.loglog(freq, result[key][lab]['mean'], color=colour,
-                                  ls=style, lw=1.3, alpha=0.9, label=name)
+                        _, s = _normalised_psd(result, bg, lab, key)
+                        ax.plot(freq, s, color=colour, ls=style, lw=1.3,
+                                alpha=0.9, label=name)
+            _style_freq_axis(ax)
+            if bg is not None:
+                ax.set_ylim(-0.25, 1.0)
+                ax.set_yticks([0.0, 0.4, 0.8])
+            else:
+                ax.set_ylim(0, 1.05)
+                ax.set_yticks([0.0, 0.4, 0.8])
             ax.set_title(PRETTY.get(lab, lab))
-            ax.set_xlabel('Frequency (Hz)')
-            ax.grid(True, which='both', ls=':', alpha=0.4)
-        axes[0].set_ylabel(r'Power spectral density  (units$^2$/Hz)')
-        axes[0].legend(loc='lower left')
+            # The linear 0-80 Hz panel hides the roll-off the log-log view shows,
+            # which is why the published figure carries the inset as well.
+            _add_loglog_inset(ax, freq, *_raw_psd(result, lab))
+        ylabel = ('Power Normalized  $(P-P_{bg})/(P+P_{bg})$' if bg is not None
+                  else 'Power / max (analytical)')
+        axes[0].set_ylabel(ylabel)
+        # Below the inset, which occupies the upper right.
+        axes[0].legend(loc='center right', bbox_to_anchor=(1.0, 0.33))
         fig.suptitle(_suptitle('LFP power spectra', result, gamma, contrast), fontsize=15)
         _save(fig, out_path)
         plt.close(fig)
 
 
-def plot_coherence(result, gamma, contrast, out_path, show_linear=False, f_max=100.0):
+def _raw_psd(result, lab):
+    return result['analytical'][lab], result['sde_nonlinear'][lab]['mean']
+
+
+def plot_coherence(result, gamma, contrast, out_path, show_linear=False, f_max=80.0):
     """Analytical vs. SDE magnitude-squared coherence for each recorded pair."""
     pairs = [tuple(p) for p in result.get('coherence_pairs', [])]
     pairs = [p for p in pairs if p in result.get('analytical_coherence', {})]
@@ -124,13 +202,15 @@ def plot_coherence(result, gamma, contrast, out_path, show_linear=False, f_max=1
                                 lw=1.3, alpha=0.9, label=name)
             a, b = pair
             ax.set_title(f'{PRETTY.get(a, a)} — {PRETTY.get(b, b)}')
-            ax.set_xlabel('Frequency (Hz)')
+            _style_freq_axis(ax, f_max)
             # Coherence is bounded in [0, 1]; a log axis would misrepresent it.
-            ax.set_ylim(0, 1.02)
-            ax.set_xlim(0, f_max)
-            ax.set_yticks([0.0, 0.25, 0.5, 0.75, 1.0])
-            ax.grid(True, ls=':', alpha=0.4)
-        axes[0].set_ylabel('Squared coherence')
+            # Axis limits and ticks follow Plot_coherence_fixed_gamma.py. That
+            # script divides by the maximum coherence across contrasts; here the
+            # raw values are plotted, since rescaling would mask a scale error
+            # between the two curves being compared.
+            ax.set_ylim(0, 1.05)
+            ax.set_yticks([0.0, 0.5, 1.0])
+        axes[0].set_ylabel('V1-V4 Coherence')
         axes[0].legend(loc='lower left')
         fig.suptitle(_suptitle('V1–V4 LFP coherence', result, gamma, contrast), fontsize=15)
         _save(fig, out_path)
@@ -187,15 +267,29 @@ def main(results_dir, show_linear=False):
 
     settings = payload['settings']
     note = f"{settings['n_trials']} trials x {settings['T']}s, "
-    for (gamma, contrast), result in payload['results'].items():
-        if 'error' in result:
-            print(f"Skipping c={contrast}, gamma={gamma}: condition failed "
-                  f"({result['error']})")
+    results = {k: v for k, v in payload['results'].items() if 'error' not in v}
+    for key, v in payload['results'].items():
+        if 'error' in v:
+            print(f"Skipping c={key[1]}, gamma={key[0]}: condition failed ({v['error']})")
+
+    # The published power panel is a contrast index against the lowest contrast,
+    # so that condition is the background and is not plotted in its own right.
+    contrasts = sorted({c for _, c in results})
+    background_c = contrasts[0] if len(contrasts) > 1 else None
+    if background_c is None:
+        print("Only one contrast in the payload: plotting power as "
+              "P / max(analytical) instead of the (P-P_bg)/(P+P_bg) contrast index, "
+              "which needs a lower-contrast background condition.")
+
+    for (gamma, contrast), result in results.items():
+        if contrast == background_c:
             continue
+        bg = results.get((gamma, background_c)) if background_c is not None else None
         result['n_trials_note'] = note
         tag = f"c{contrast}_g{gamma}".replace('.', 'p')
         plot_psd(result, gamma, contrast,
-                 os.path.join(plots_dir, f'sde_validation_psd_{tag}.pdf'), show_linear)
+                 os.path.join(plots_dir, f'sde_validation_psd_{tag}.pdf'),
+                 show_linear, bg=bg)
         plot_coherence(result, gamma, contrast,
                        os.path.join(plots_dir, f'sde_validation_coherence_{tag}.pdf'),
                        show_linear)
