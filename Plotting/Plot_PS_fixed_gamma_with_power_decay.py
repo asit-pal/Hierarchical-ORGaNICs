@@ -271,8 +271,11 @@ def plot_power_spectra_results(results_dir, area='V1'):
             if fig is not None:
                 save_path = os.path.join(plots_dir, f'power_spectrum_{gain_type}_{gamma}_high_freq.pdf')
                 fig.savefig(save_path, dpi=400, bbox_inches='tight', format='pdf')
+                # Also a PNG so the figure can be inspected without a rasteriser.
+                png_path = os.path.splitext(save_path)[0] + '.png'
+                fig.savefig(png_path, dpi=150, bbox_inches='tight', format='png')
                 plt.close(fig)
-                print(f"Saved plot to: {save_path}")
+                print(f"Saved plot to: {save_path} and {os.path.basename(png_path)}")
             else:
                 print(f"Failed to create plot for gamma={gamma}")
     
@@ -302,8 +305,11 @@ def plot_power_spectra_results(results_dir, area='V1'):
             if fig is not None:
                 save_path = os.path.join(plots_dir, f'power_spectrum_{area}_{gain_type}_{beta1}.pdf')
                 fig.savefig(save_path, dpi=400, bbox_inches='tight', format='pdf')
+                # Also a PNG so the figure can be inspected without a rasteriser.
+                png_path = os.path.splitext(save_path)[0] + '.png'
+                fig.savefig(png_path, dpi=150, bbox_inches='tight', format='png')
                 plt.close(fig)
-                print(f"Saved plot to: {save_path}")
+                print(f"Saved plot to: {save_path} and {os.path.basename(png_path)}")
             else:
                 print(f"Failed to create plot for beta1={beta1}")
 
