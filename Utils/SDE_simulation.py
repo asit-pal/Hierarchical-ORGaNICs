@@ -53,7 +53,7 @@ that factor so the analytical and Welch curves can be overlaid directly.
 import numpy as np
 import torch
 from scipy.linalg import expm
-from scipy.signal import welch
+from scipy.signal import csd, welch
 
 from Utils.matrix_spectrum import matrix_solution, noise_power_spectrum
 
@@ -129,104 +129,194 @@ def resolve_record_every(dt, target_fs):
 
 
 # --------------------------------------------------------------------------- #
+# the additive `low_pass_add` measurement term
+# --------------------------------------------------------------------------- #
+def low_pass_matrix(freqs, sigma, tau, rho, k):
+    """Two-sided additive measurement term implied by `low_pass_add`.
+
+    `matrix_spectrum.spectral_matrix` adds
+
+        ones(n, n) * P(w)  +  eye(n) * rho * P(w) ,
+        P(w) = sigma^2 / (1 + (tau w)^2)^2
+
+    to the spectral matrix: a *shared* low-pass process seen by every channel --
+    which is what creates cross-channel power, and hence coherence -- plus an
+    independent per-channel one scaled by rho. Note the off-diagonal entries get
+    P, not P*(1 + rho).
+
+    The term is deterministic and known in closed form, so the analytical and the
+    simulated spectra both take it from here rather than the simulation paying
+    estimator noise for a quantity that has an exact expression. The two call
+    sites differ only by the one-sided factor:
+
+        analytical:  block += low_pass_matrix(...)      then to_onesided(...)
+        numerical:   C     += 2 * low_pass_matrix(...)  (welch is already one-sided)
+
+    Returns:
+        (n_freq, k, k) real array.
+    """
+    om = 2 * np.pi * np.asarray(freqs, dtype=np.float64)
+    P = noise_power_spectrum(om, sigma, tau)
+    shape = np.ones((k, k)) + rho * np.eye(k)
+    return P[:, None, None] * shape[None, :, :]
+
+
+def coherence_from_block(block, i, j):
+    """Magnitude-squared coherence |Sij|^2 / (Sii Sjj) from a spectral block.
+
+    The one-sided factor of 2 cancels between numerator and denominator, so this
+    is convention-free: it gives the same answer for the two-sided analytical
+    block and for the one-sided welch estimate. `block` is (..., n_freq, k, k).
+    """
+    Sij = block[..., i, j]
+    Sii = np.real(block[..., i, i])
+    Sjj = np.real(block[..., j, j])
+    return np.abs(Sij) ** 2 / (Sii * Sjj)
+
+
+# --------------------------------------------------------------------------- #
 # analytical reference
 # --------------------------------------------------------------------------- #
-def _psd_diagonal_reference(mat, freqs, indices, chunk=8):
-    """Diagonal of `matrix_solution.spectral_matrix`, walked in frequency chunks.
+def _spectral_block_reference(mat, freqs, indices, chunk=8):
+    """The (k, k) sub-block of `matrix_solution.spectral_matrix`, chunked over freq.
 
     This is the untouched reference implementation. It materialises an
     (n_freq, n, n) complex array (~6 GB at n=864 for 500 frequencies) and
     inverts two n x n complex matrices per frequency, so it is only practical
-    for spot checks -- `analytical_psd` uses it to validate the fast path.
+    for spot checks -- `analytical_spectra` uses it to validate the fast path.
     """
-    out = {label: np.empty(len(freqs)) for label in indices}
+    idx = list(indices.values())
+    k = len(idx)
     freqs = np.asarray(freqs, dtype=np.float64)
+    out = np.empty((freqs.size, k, k), dtype=np.complex128)
     for start in range(0, freqs.size, chunk):
         stop = min(start + chunk, freqs.size)
         spec = mat.spectral_matrix(freq=torch.as_tensor(freqs[start:stop]))
-        for label, idx in indices.items():
-            out[label][start:stop] = torch.real(spec[:, idx, idx]).cpu().numpy()
+        out[start:stop] = spec[:, idx][:, :, idx].cpu().numpy()
         del spec
     return out
 
 
-def _psd_diagonal_fast(mat, freqs, indices):
-    """Same diagonal, without forming the full spectral matrix.
+def _spectral_block_fast(mat, freqs, indices):
+    """Same sub-block, without forming the full spectral matrix.
 
     `spectral_matrix` computes  S(w) = M^-1 Q M^-H  with  M = J + i w I. Only a
-    few diagonal entries are needed, and
+    few entries are needed, and for real J
 
-        S_kk = e_k^T M^-1 Q M^-H e_k = a^T Q conj(a),   M^T a = e_k ,
+        S_kl = e_k^T M^-1 Q M^-H e_l = a_k^T Q conj(a_l),   M^T a_k = e_k ,
 
-    because M^-H e_k = conj(M^-T e_k) for real J. So one LU factorisation of M^T
-    per frequency plus one back-substitution per requested index replaces two
-    full n x n complex inversions -- roughly an order of magnitude less work,
-    and O(n) instead of O(n_freq * n^2) memory.
+    because M^-H e_l = conj(M^-T e_l). So one LU factorisation of M^T per
+    frequency plus one back-substitution per requested index replaces two full
+    n x n complex inversions -- roughly an order of magnitude less work, and
+    O(n k) instead of O(n_freq * n^2) memory. The same factorisation yields the
+    off-diagonal entries for free, which is what makes coherence cheap.
     """
     n = mat.N
     Q = mat.noise_mat
     eye = torch.eye(n, dtype=torch.cdouble)
-    E = torch.zeros((n, len(indices)), dtype=torch.cdouble)
-    for col, idx in enumerate(indices.values()):
-        E[idx, col] = 1.0
+    idx = list(indices.values())
+    k = len(idx)
+    E = torch.zeros((n, k), dtype=torch.cdouble)
+    for col, i in enumerate(idx):
+        E[i, col] = 1.0
     Jc = mat.J.to(torch.cdouble)
 
-    out = {label: np.empty(len(freqs)) for label in indices}
-    labels = list(indices.keys())
+    freqs = np.asarray(freqs, dtype=np.float64)
+    out = np.empty((freqs.size, k, k), dtype=np.complex128)
     with torch.no_grad():
-        for f_i, f in enumerate(np.asarray(freqs, dtype=np.float64)):
+        for f_i, f in enumerate(freqs):
             om = 2 * np.pi * f
-            A = torch.linalg.solve((Jc + 1j * om * eye).transpose(0, 1), E)  # (n, n_idx)
-            # S_kk = a_k^T Q conj(a_k); imaginary part is round-off since Q is Hermitian.
-            vals = torch.einsum('ak,ab,bk->k', A, Q, torch.conj(A))
-            for col, label in enumerate(labels):
-                out[label][f_i] = float(vals[col].real)
+            A = torch.linalg.solve((Jc + 1j * om * eye).transpose(0, 1), E)  # (n, k)
+            blk = torch.einsum('ak,ab,bl->kl', A, Q, torch.conj(A))
+            # Q is Hermitian, so the block is too; symmetrise to kill round-off.
+            blk = 0.5 * (blk + blk.conj().transpose(0, 1))
+            out[f_i] = blk.cpu().numpy()
 
     if mat.low_pass_add:
-        extra = np.array([noise_power_spectrum(2 * np.pi * f, mat.noise_sigma, mat.noise_tau)
-                          for f in freqs])
-        for label in out:                       # ones*P on every entry, + rho*P on the diagonal
-            out[label] = out[label] + extra * (1.0 + mat.rho)
+        out = out + low_pass_matrix(freqs, mat.noise_sigma, mat.noise_tau, mat.rho, k)
     return out
+
+
+def analytical_spectra(J, L, S, freqs, indices, pairs=(), noise_sigma=None,
+                       noise_tau=None, low_pass_add=False, rho=None,
+                       n_check=3, verbose=False):
+    """Analytical spectra for the recorded channels, in welch (one-sided) units.
+
+    Values come from the fast path, cross-checked against the untouched
+    `matrix_solution` at `n_check` frequencies spread over the grid -- so what
+    gets compared against the SDE is the quantity the published pipeline
+    produces, just computed without the 6 GB intermediate.
+
+    Args:
+        J, L, S: augmented Jacobian and noise matrices (torch tensors).
+        freqs: 1-D array of frequencies in Hz.
+        indices: dict {label: reduced-state index}.
+        pairs: iterable of (label_a, label_b) for which to return coherence.
+    Returns:
+        dict with
+          'block'     : (n_freq, k, k) complex one-sided cross-spectral matrix
+          'psd'       : {label: one-sided auto-spectrum}
+          'coherence' : {(a, b): magnitude-squared coherence}
+    """
+    freqs = np.asarray(freqs, dtype=np.float64)
+    mat = matrix_solution(J, L, S, noise_sigma, noise_tau,
+                          low_pass_add=low_pass_add, rho=rho)
+    labels = list(indices.keys())
+    fast = _spectral_block_fast(mat, freqs, indices)
+
+    if n_check:
+        probe = np.unique(np.linspace(0, freqs.size - 1, n_check).astype(int))
+        ref = _spectral_block_reference(mat, freqs[probe], indices)
+        # Block-relative error, not per-entry: off-diagonal entries pass through
+        # near-cancellations where a per-entry ratio blows up spuriously.
+        scale = np.maximum(np.abs(ref).max(axis=(1, 2)), 1e-300)
+        rel = np.abs(fast[probe] - ref).max(axis=(1, 2)) / scale
+        if rel.max() > 1e-6:
+            raise ValueError("fast analytical spectral block disagrees with "
+                             f"matrix_solution (max relative difference {rel.max():.3e})")
+        herm = np.abs(fast - np.conj(np.swapaxes(fast, 1, 2))).max()
+        if herm > 1e-10 * np.abs(fast).max():
+            raise ValueError(f"analytical spectral block is not Hermitian ({herm:.3e})")
+        if verbose:
+            print(f"  [analytical] block matches matrix_solution to {rel.max():.2e} "
+                  f"at {probe.size} probe frequencies")
+
+    block = to_onesided(fast)
+    psd = {lab: np.real(block[:, i, i]).copy() for i, lab in enumerate(labels)}
+
+    coh = {}
+    for a, b in pairs:
+        ia, ib = labels.index(a), labels.index(b)
+        coh[(a, b)] = coherence_from_block(block, ia, ib)
+        if n_check:
+            # Compare against the *published* entry point, so the validated
+            # object is literally matrix_solution.coherence's output.
+            probe = np.unique(np.linspace(0, freqs.size - 1, n_check).astype(int))
+            ref_coh, _ = mat.coherence(i=indices[a], j=indices[b],
+                                       freq=torch.as_tensor(freqs[probe]))
+            ref_coh = np.abs(ref_coh.cpu().numpy())   # Utils/Coherence.py takes abs()
+            diff = np.abs(coh[(a, b)][probe] - ref_coh).max()
+            if diff > 1e-8:
+                raise ValueError(f"coherence({a},{b}) disagrees with "
+                                 f"matrix_solution.coherence (max abs diff {diff:.3e})")
+            if verbose:
+                print(f"  [analytical] coherence({a},{b}) matches "
+                      f"matrix_solution.coherence to {diff:.2e}")
+
+    return {'block': block, 'psd': psd, 'coherence': coh}
 
 
 def analytical_psd(J, L, S, freqs, indices, noise_sigma=None, noise_tau=None,
                    low_pass_add=False, rho=None, n_check=3, verbose=False):
     """One-sided analytical PSD (welch convention) at `freqs`, for `indices`.
 
-    The values come from the fast path, which is verified against the untouched
-    `matrix_solution.spectral_matrix` at `n_check` frequencies spread over the
-    grid -- so the curve being compared against the SDE is still the one the
-    published pipeline produces, just computed without the 6 GB intermediate.
-
-    Args:
-        J, L, S: augmented Jacobian and noise matrices (torch tensors).
-        freqs: 1-D array of frequencies in Hz.
-        indices: dict {label: reduced-state index}.
-        n_check: number of frequencies at which to cross-check the fast path.
-    Returns:
-        dict {label: array of one-sided PSD values}.
+    Thin wrapper over `analytical_spectra` for callers that only want
+    auto-spectra and shouldn't have to know about the cross-spectral block.
     """
-    freqs = np.asarray(freqs, dtype=np.float64)
-    mat = matrix_solution(J, L, S, noise_sigma, noise_tau,
-                          low_pass_add=low_pass_add, rho=rho)
-    fast = _psd_diagonal_fast(mat, freqs, indices)
-
-    if n_check:
-        probe_at = np.unique(np.linspace(0, freqs.size - 1, n_check).astype(int))
-        ref = _psd_diagonal_reference(mat, freqs[probe_at], indices)
-        for label in indices:
-            a, b = fast[label][probe_at], ref[label]
-            rel = np.abs(a - b) / np.maximum(np.abs(b), 1e-300)
-            if rel.max() > 1e-6:
-                raise ValueError(
-                    f"fast analytical PSD disagrees with matrix_solution for '{label}' "
-                    f"(max relative difference {rel.max():.3e})")
-            if verbose:
-                print(f"  [analytical_psd] '{label}' matches matrix_solution to "
-                      f"{rel.max():.2e} at {probe_at.size} probe frequencies")
-
-    return {label: to_onesided(v) for label, v in fast.items()}
+    return analytical_spectra(J, L, S, freqs, indices, pairs=(),
+                              noise_sigma=noise_sigma, noise_tau=noise_tau,
+                              low_pass_add=low_pass_add, rho=rho,
+                              n_check=n_check, verbose=verbose)['psd']
 
 
 # --------------------------------------------------------------------------- #
@@ -461,46 +551,55 @@ def average_psd(psd_per_trial):
     return mean, sem
 
 
-def observation_noise(shape, dt, sigma, tau, rho, rng):
-    """Simulate the additive measurement noise implied by `low_pass_add`.
+def cross_spectral_matrix(traces, fs, nperseg, overlap=0.5):
+    """Welch cross-spectral matrix of `traces` (..., k, n_samples).
 
-    `matrix_spectrum` adds  ones * P(w) + I * rho * P(w)  to the spectral
-    matrix, with P(w) = sigma^2 / (1 + (tau w)^2)^2. That is a *shared* scalar
-    process plus an independent per-channel process, each the output of two
-    cascaded one-pole filters driven by white noise:
+    Returns (freqs, C) with C of shape (..., n_freq, k, k), complex. Uses
+    `scipy.signal.csd` with kwargs identical to `welch_psd`, so the two
+    normalisations cancel and `real(C[..., i, i]) == welch_psd(traces_i)`.
 
-        tau dg1 = -g1 dt + amp dW ,   tau dg2 = (-g2 + g1) dt
-        =>  S_g2(w) = amp^2 / (1 + (tau w)^2)^2 ,
+    Two conventions worth stating, because they are easy to get wrong:
 
-    with amp = sigma for the shared term and sigma*sqrt(rho) for the private
-    one. Both are simulated here so the SDE traces carry the same additive
-    term the analytical curve does.
-
-    Args:
-        shape: (..., n_channels, n_samples). The shared process is common to the
-            channels of a given leading index but independent across them.
+      * scipy computes  Pxy = <conj(X) Y>,  whereas matrix_spectrum's
+        spectral_matrix[i, j] = <X_i conj(X_j)>. The two are transposes of one
+        another. Irrelevant for magnitude-squared coherence; load-bearing if the
+        cross-spectrum *phase* is ever compared.
+      * scipy applies the one-sided factor of 2 to auto- and cross-spectra
+        alike, and that factor cancels in coherence -- so a coherence comparison
+        needs no convention correction on either side.
     """
-    n_samples = shape[-1]
-    n_channels = shape[-2]
-    lead = tuple(shape[:-2])
-    a = dt / tau
-    n_warm = int(np.ceil(10 * tau / dt))   # discard the start-from-zero transient
+    traces = np.asarray(traces)
+    k = traces.shape[-2]
+    nperseg = int(min(nperseg, traces.shape[-1]))
+    kw = dict(fs=fs, nperseg=nperseg, noverlap=int(overlap * nperseg),
+              detrend='constant', scaling='density', window='hann', axis=-1)
+    C = None
+    freqs = None
+    for i in range(k):
+        for j in range(i, k):
+            freqs, cij = csd(traces[..., i, :], traces[..., j, :], **kw)
+            if C is None:
+                C = np.empty(traces.shape[:-2] + (freqs.size, k, k), dtype=np.complex128)
+            if i == j:
+                C[..., i, i] = np.real(cij)   # exactly real by construction
+            else:
+                C[..., i, j] = cij
+                C[..., j, i] = np.conj(cij)
+    return freqs, C
 
-    def cascade(batch_shape, amp):
-        g1 = np.zeros(batch_shape)
-        g2 = np.zeros(batch_shape)
-        out = np.empty(batch_shape + (n_samples,))
-        drive = (amp / tau) * np.sqrt(dt)
-        for k in range(-n_warm, n_samples):
-            g1 = g1 - a * g1 + drive * rng.standard_normal(batch_shape)
-            g2 = g2 + a * (-g2 + g1)
-            if k >= 0:
-                out[..., k] = g2
-        return out
 
-    shared = cascade(lead + (1,), sigma)
-    private = cascade(lead + (n_channels,), sigma * np.sqrt(rho))
-    return shared + private
+def pool_cross_spectra(blocks):
+    """Mean cross-spectral matrix over the leading (trial) axis.
+
+    Coherence must be formed from pooled *spectra*, never by averaging per-trial
+    coherences. Magnitude-squared coherence is a ratio functional, so its upward
+    bias (~ (1 - C)^2 / n_segments, and exactly 1 in the single-segment limit)
+    survives averaging over trials untouched -- averaging shrinks the variance
+    but not the bias. `scipy.signal.csd` already averages over a trial's
+    segments, and every trial contributes the same number of segments, so the
+    mean of the per-trial matrices *is* the grand mean over all segments.
+    """
+    return np.asarray(blocks).mean(axis=0)
 
 
 # --------------------------------------------------------------------------- #
@@ -542,6 +641,22 @@ def selftest_ou(tau=0.02, sigma=1.0, dt=1e-4, T=200.0, seed=0, verbose=True):
     return float(ratio.mean()), float(np.median(err))
 
 
+def _toy_linear_system():
+    """A 3-D linear SDE with a resonance, shared by the self-tests.
+
+    Damped oscillator (~30 Hz) coupled to a slow leak; nothing special about the
+    numbers beyond giving a spectrum with a peak and a roll-off. Note x1 is
+    exactly dx0/dt, which the coherence self-test exploits.
+    """
+    w0, zeta = 2 * np.pi * 30.0, 0.15
+    J = np.array([[0.0, 1.0, 0.0],
+                  [-w0 ** 2, -2 * zeta * w0, 20.0],
+                  [0.0, 0.0, -50.0]])
+    L = np.diag([0.0, 1.0, 0.7])
+    S = np.diag([1.0, 3.0, 2.0])
+    return torch.as_tensor(J), torch.as_tensor(L), torch.as_tensor(S)
+
+
 def selftest_linear_system(dt=2e-4, T=60.0, n_trials=8, seed=1, verbose=True):
     """End-to-end check on a 3-D linear SDE with a resonance.
 
@@ -550,17 +665,7 @@ def selftest_linear_system(dt=2e-4, T=60.0, n_trials=8, seed=1, verbose=True):
     `welch_psd` and `average_psd` -- on a system small enough that the whole
     thing runs in seconds. Returns {integrator: mean PSD ratio}.
     """
-    # Damped oscillator (~30 Hz) coupled to a slow leak; nothing special about
-    # the numbers beyond giving a spectrum with a peak and a roll-off.
-    w0, zeta = 2 * np.pi * 30.0, 0.15
-    J = np.array([[0.0, 1.0, 0.0],
-                  [-w0 ** 2, -2 * zeta * w0, 20.0],
-                  [0.0, 0.0, -50.0]])
-    L = np.diag([0.0, 1.0, 0.7])
-    S = np.diag([1.0, 3.0, 2.0])
-    Jt = torch.as_tensor(J)
-    Lt = torch.as_tensor(L)
-    St = torch.as_tensor(S)
+    Jt, Lt, St = _toy_linear_system()
     B = noise_gain(Lt, St)
 
     fs = 1.0 / dt
@@ -590,6 +695,110 @@ def selftest_linear_system(dt=2e-4, T=60.0, n_trials=8, seed=1, verbose=True):
     return out
 
 
+def selftest_coherence(dt=2e-4, T=60.0, n_trials=8, seed=2, verbose=True):
+    """Check the empirical cross-spectral estimator against analytical coherence.
+
+    Uses the same 3-D toy system as `selftest_linear_system`. Three assertions:
+
+      1. `real(csd(x_i, x_i))` reproduces `welch(x_i)` -- the two normalisations
+         match, which is what makes the coherence ratio meaningful at all.
+      2. x1 is exactly dx0/dt, so S_01 = i w S_00 and the coherence between them
+         is identically 1. Any plumbing error shows up here first.
+      3. For a genuinely partial pair (x0, x2) the *pooled* coherence tracks the
+         analytical value, while averaging per-trial coherences is visibly biased
+         high -- which is the whole reason pooling is done spectra-first.
+
+    Returns a dict of the measured quantities.
+    """
+    Jt, Lt, St = _toy_linear_system()
+    B = noise_gain(Lt, St)
+
+    fs = 1.0 / dt
+    nperseg = int(2.0 * fs)
+    n_steps = int(T / dt)
+    n_burn = int(1.0 / dt)
+    indices = {'x0': 0, 'x1': 1, 'x2': 2}
+    pairs = (('x0', 'x1'), ('x0', 'x2'))
+
+    freqs = np.fft.rfftfreq(nperseg, d=dt)
+    band = (freqs >= 2) & (freqs <= 150)
+    ana = analytical_spectra(Jt, Lt, St, freqs[band], indices, pairs=pairs)
+
+    traces = simulate_linear_batch(Jt, B, dt, n_steps, n_burn, n_trials,
+                                   list(indices.values()), 1,
+                                   np.random.default_rng(seed), integrator='exact')
+
+    # (1) csd diagonal vs welch
+    _, psd = welch_psd(traces, fs, nperseg)
+    _, blocks = cross_spectral_matrix(traces, fs, nperseg)
+    diag = np.real(np.einsum('tfkk->tkf', blocks))
+    diag_err = np.abs(diag - psd).max() / np.abs(psd).max()
+    if diag_err > 1e-12:
+        raise ValueError(f"csd diagonal does not match welch (rel {diag_err:.2e})")
+
+    pooled = pool_cross_spectra(blocks)[band]
+    out = {'diag_rel_err': float(diag_err)}
+
+    # (2) exact-unity pair, and (3) partial pair with the bias comparison
+    for a, b in pairs:
+        ia, ib = list(indices).index(a), list(indices).index(b)
+        pooled_coh = coherence_from_block(pooled, ia, ib)
+        per_trial = coherence_from_block(blocks[:, band], ia, ib).mean(axis=0)
+        ref = ana['coherence'][(a, b)]
+        out[f'{a}{b}'] = {'analytical': float(ref.mean()),
+                          'pooled': float(pooled_coh.mean()),
+                          'per_trial_mean': float(per_trial.mean())}
+        if verbose:
+            print(f"[selftest_coherence] {a}-{b}: analytical={ref.mean():.4f}  "
+                  f"pooled={pooled_coh.mean():.4f}  "
+                  f"per-trial-averaged={per_trial.mean():.4f} (biased high)")
+        if abs(pooled_coh.mean() - ref.mean()) > 0.05:
+            raise ValueError(f"pooled coherence({a},{b}) = {pooled_coh.mean():.4f} "
+                             f"does not match analytical {ref.mean():.4f}")
+
+    # The bias must be visible on the partial pair, otherwise the pooling scheme
+    # is untested by this self-test and could silently regress.
+    partial = out['x0x2']
+    if partial['per_trial_mean'] - partial['pooled'] < 0.01:
+        raise ValueError("per-trial-averaged coherence is not measurably biased "
+                         "high; the pooling comparison is not exercising anything")
+    if verbose:
+        print(f"[selftest_coherence] csd/welch diagonal agreement: {diag_err:.2e}")
+    return out
+
+
+def selftest_low_pass(sigma=0.03, tau=0.05, rho=0.1, verbose=True):
+    """Pin the one-sided factor on the additive `low_pass_add` term.
+
+    With the dynamic noise zeroed (L = 0) the entire spectrum *is* the additive
+    term, so the analytical block must equal exactly the one-sided
+    2 P(w) (ones + rho I) that the numerical side adds -- which is the assertion
+    that keeps the two call sites from drifting by a factor of 2.
+
+    The coherence then takes its noise-only value 1/(1+rho)^2, since the shared
+    process gives S_xy = P while S_xx = S_yy = P(1+rho).
+    """
+    Jt, _, St = _toy_linear_system()
+    Lz = torch.zeros_like(St)
+    freqs = np.array([1.0, 10.0, 100.0])
+    indices = {'x0': 0, 'x1': 1, 'x2': 2}
+    ana = analytical_spectra(Jt, Lz, St, freqs, indices, pairs=(('x0', 'x1'),),
+                             noise_sigma=sigma, noise_tau=tau,
+                             low_pass_add=True, rho=rho, n_check=3)
+    expected = 2.0 * low_pass_matrix(freqs, sigma, tau, rho, len(indices))
+    err = np.abs(ana['block'] - expected).max() / np.abs(expected).max()
+    coh_err = np.abs(ana['coherence'][('x0', 'x1')] - 1.0 / (1 + rho) ** 2).max()
+    if err > 1e-12 or coh_err > 1e-12:
+        raise ValueError(f"low_pass_add term mismatch: block rel {err:.2e}, "
+                         f"coherence abs {coh_err:.2e}")
+    if verbose:
+        print(f"[selftest_low_pass] one-sided additive term exact to {err:.2e}; "
+              f"noise-only coherence = 1/(1+rho)^2 to {coh_err:.2e}")
+    return float(err), float(coh_err)
+
+
 if __name__ == '__main__':
     selftest_ou()
     selftest_linear_system()
+    selftest_coherence()
+    selftest_low_pass()

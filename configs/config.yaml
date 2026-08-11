@@ -85,7 +85,7 @@ SDE_validation:
   dt_linear: 1.0e-4         # exact linear run step (unbiased at any dt); null -> 1/record_fs
   T: 16.0                   # simulated seconds per trial, after burn-in
   burn_in: 3.0              # discarded transient (s); must exceed the slowest mode
-  n_trials: 32
+  n_trials: 100
   linear_batch: 8           # trials advanced together in the linear run (caps memory)
   record_fs: 20000.0        # target sampling rate of the stored traces (Hz)
   welch_nperseg_sec: 4.0    # Welch segment length (s); must outlast the slowest mode
@@ -93,11 +93,17 @@ SDE_validation:
   min_freq: 1.0
   max_freq: 200.0
   report_band: [20.0, 100.0]  # extra sub-band summarised in the report
+  coherence_pairs: [['y1', 'y4']]   # the V1-V4 LFP pair Coherence_analysis.py reports
+  # The published spectra include the additive low-pass measurement term. Overrides
+  # noise_params.low_pass_add for this analysis only, so Power_spectra_analysis.py and
+  # Coherence_analysis.py keep whatever noise_params says.
+  low_pass_add: True
   seed: 0
   n_jobs: 16
   paired: True              # drive the linear system with the nonlinear run's noise
   clip_nonneg: True
   save_traces: True
+  save_csd: True            # keep the pooled cross-spectral block for re-plotting
 
 Coherence:
   Feedback_gain:

@@ -24,7 +24,7 @@ Hierarchical ORGaNICs (Oscillatory Recurrent Gated Neural Integrator Circuits) �
 - `Coherence.py`: `Calculate_coherence()`, `Calculate_power_spectra()`, `create_L_matrix()`, `create_S_matrix()`, noise variance helpers
 - `Communication.py`: `correlation()` (Lyapunov equation), `performance()` (reduced-rank regression), `Calculate_Pred_perf_Dim()`, `Calculate_Alignment()`, frequency-wise analysis functions
 - `matrix_spectrum.py`: `matrix_solution` class — computes spectral matrix, auto/cross spectra, coherence from Jacobian + noise matrices
-- `SDE_simulation.py`: direct stochastic integration used to *check* `matrix_spectrum`. `simulate_linear_batch()` (linearised system, exact Van Loan or Euler-Maruyama stepping), `simulate_paired_trial()` (full nonlinear model, optionally driven by the same Wiener path as the linear one), `analytical_psd()`, `welch_psd()`, and two self-tests (`selftest_ou`, `selftest_linear_system`)
+- `SDE_simulation.py`: direct stochastic integration used to *check* `matrix_spectrum`. `simulate_linear_batch()` (linearised system, exact Van Loan or Euler-Maruyama stepping), `simulate_paired_trial()` (full nonlinear model, optionally driven by the same Wiener path as the linear one), `analytical_spectra()` / `analytical_psd()`, `welch_psd()` / `cross_spectral_matrix()`, `pool_cross_spectra()`, `coherence_from_block()`, `low_pass_matrix()`, and four self-tests (`selftest_ou`, `selftest_linear_system`, `selftest_coherence`, `selftest_low_pass`)
 
 ### Analysis Scripts (`Analysis/`)
 Each script is a standalone entry point: `python Analysis/<script>.py path/to/config.yaml`
@@ -67,13 +67,13 @@ bash Job_Scripts/submit_analysis.sh <config_number>
 python Analysis/Power_spectra_analysis.py Results_5/config_1/config_1.yaml --area V1
 ```
 
-### Validating the analytical power spectra
+### Validating the analytical power spectra and coherence
 The published spectra come from a linearisation about the deterministic fixed point.
 `Analysis/SDE_validation.py` checks that approximation by simulating the SDE directly:
 
 ```bash
-python Analysis/SDE_validation.py Results_5/config_1/config_1.yaml --n-jobs 16
-python Plotting/Plot_SDE_validation.py Results_5/config_1
+python Analysis/SDE_validation.py Results_5/config_1/config_1.yaml --n-jobs 32
+python Plotting/Plot_SDE_validation.py Results_5/config_1        # --show-linear for controls
 ```
 
 It runs three things and reports them side by side:
@@ -84,9 +84,31 @@ It runs three things and reports them side by side:
 3. **Noise-matched pair** — (1) and (2) advanced in one loop consuming *identical*
    Wiener increments, giving a trajectory-level error `rms(nonlinear - linear)`.
 
-Per-trial Welch PSDs are averaged across trials. Conventions: `matrix_solution` returns the
-two-sided PSD in angular frequency; `scipy.signal.welch` returns the one-sided PSD in Hz, so
-the analytical curve is multiplied by 2 before overlaying (verified by `selftest_ou`).
+The figures overlay only (2) on the analytical curve; the linear controls are always computed
+and printed, and `--show-linear` draws them. Only `y1`/`y4` (raw membrane potentials) are
+plotted — those are the LFP quantities the paper reports; the `Plus` firing rates stay in the
+printed table only.
+
+**Conventions.** `matrix_solution` returns the two-sided PSD in angular frequency;
+`scipy.signal.welch` returns the one-sided PSD in Hz, so the analytical curve is multiplied by
+2 before overlaying (verified by `selftest_ou`). That factor *cancels* in magnitude-squared
+coherence, so the coherence comparison is convention-free.
+
+**Coherence.** `cross_spectral_matrix()` estimates the full complex cross-spectral block using
+`scipy.signal.csd` with kwargs identical to `welch_psd`, so the normalisations cancel.
+Coherence must be pooled **spectra-first** — average the cross- and auto-spectra over all
+trials, *then* form `|Sxy|^2 / (Sxx Syy)`. Averaging per-trial coherences leaves the
+`(1-C)^2/n_segments` upward bias in place (it is exactly 1 for a single segment);
+`selftest_coherence` asserts that difference is measurable.
+
+**`low_pass_add`.** `spectral_matrix` adds `ones*P(w) + rho*I*P(w)` — a *shared* low-pass
+process, which is what creates cross-channel power and hence coherence, plus a private one.
+Off-diagonal entries get `P`, not `P(1+rho)`. The term is deterministic, so the analytical and
+simulated spectra both take it from `low_pass_matrix()` rather than the simulation paying
+estimator noise for a closed-form quantity: analytical adds it two-sided before the x2,
+numerical adds `2 *` it to the already-one-sided Welch output, after pooling and before
+forming coherence. `selftest_low_pass` pins that factor exactly. The `SDE_validation` config
+section overrides `noise_params.low_pass_add` so the other analyses are unaffected.
 
 Sizing matters: `burn_in` must outlast the slowest mode of `J_aug` (~550 ms for the default
 config) and `dt` must be well under the fastest (`tau_f`, 1 ms). The script warns when either

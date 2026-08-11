@@ -1,9 +1,9 @@
 #!/bin/bash
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
-#SBATCH --cpus-per-task=16
+#SBATCH --cpus-per-task=32
 #SBATCH --time=8:00:00
-#SBATCH --mem=32GB
+#SBATCH --mem=64GB
 #SBATCH --job-name=SDE_Validation
 #SBATCH --output=job.%j.out
 #SBATCH --account=torch_pr_239_general
@@ -22,7 +22,7 @@ source /ext3/env.sh
 cd "${BASE_DIR}"
 
 echo "Running SDE validation of the analytical power spectra"
-python -u ${BASE_DIR}/Analysis/SDE_validation.py "${NEW_CONFIG}" --n-jobs 16
+python -u ${BASE_DIR}/Analysis/SDE_validation.py "${NEW_CONFIG}" --n-jobs 32
 
 echo "Plotting SDE validation"
 python -u ${BASE_DIR}/Plotting/Plot_SDE_validation.py "${RESULTS_DIR}"

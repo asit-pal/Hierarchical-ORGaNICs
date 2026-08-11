@@ -19,9 +19,9 @@ from Models.Model import RingModel
 from Utils.Coherence import create_S_matrix, create_L_matrix
 from Utils.SDE_simulation import (
     SPLUS_BLOCKS, YPLUS_BLOCKS,
-    analytical_psd, average_psd, default_record_indices, noise_gain,
-    observation_noise, resolve_record_every, selftest_ou,
-    simulate_linear_batch, simulate_paired_trial, welch_psd,
+    analytical_spectra, average_psd, coherence_from_block, cross_spectral_matrix,
+    default_record_indices, low_pass_matrix, noise_gain, pool_cross_spectra,
+    resolve_record_every, selftest_ou, simulate_linear_batch, simulate_paired_trial,
 )
 
 torch.set_default_dtype(torch.float64)
@@ -36,7 +36,7 @@ DEFAULTS = {
     'dt_linear': 1.0e-4,       # step for the standalone exact linear run (unbiased at any dt)
     'T': 16.0,                 # simulated duration per trial after burn-in (s)
     'burn_in': 3.0,            # discarded transient (s); must exceed the slowest mode
-    'n_trials': 32,
+    'n_trials': 100,
     'linear_batch': 8,         # trials advanced together in the linear run (memory)
     'record_fs': 20000.0,      # target sampling rate of the stored traces (Hz)
     'welch_nperseg_sec': 4.0,  # segment length (s); must outlast the slowest mode
@@ -44,11 +44,14 @@ DEFAULTS = {
     'min_freq': 1.0,
     'max_freq': 200.0,
     'report_band': [20.0, 100.0],   # extra sub-band summarised in the report
+    'coherence_pairs': [['y1', 'y4']],   # V1-V4 LFP pair the paper reports
+    'low_pass_add': True,      # published spectra include the additive measurement term
     'seed': 0,
     'n_jobs': 16,
     'paired': True,            # drive the linear system with the nonlinear run's noise
     'clip_nonneg': True,
     'save_traces': True,       # keep a short trace snippet for the time-domain panel
+    'save_csd': True,          # keep the pooled cross-spectral block for re-plotting
 }
 
 # Filled in by the pool initializer so the big arrays are not re-pickled per task.
@@ -82,11 +85,15 @@ def _run_trial(trial):
         paired=c['paired'], clip_nonneg=c['clip_nonneg'],
     )
     res = {'n_clipped': out['n_clipped'], 'wall_seconds': time.time() - t_start}
-    _, psd = welch_psd(out['nonlinear'], c['fs_rec'], c['nperseg'], c['overlap'])
-    res['psd_nonlinear'] = psd
+    # Return the full cross-spectral block, not just the PSD: the PSD is its
+    # diagonal, and the off-diagonals are what coherence needs. Banded here so
+    # the pickle sent back to the parent stays small.
+    _, blk = cross_spectral_matrix(out['nonlinear'], c['fs_rec'], c['nperseg'], c['overlap'])
+    res['csd_nonlinear'] = blk[c['band']]
     if c['paired']:
-        _, psd_lin = welch_psd(out['linear'], c['fs_rec'], c['nperseg'], c['overlap'])
-        res['psd_linear'] = psd_lin
+        _, blk_lin = cross_spectral_matrix(out['linear'], c['fs_rec'], c['nperseg'],
+                                           c['overlap'])
+        res['csd_linear'] = blk_lin[c['band']]
         # Trajectory-level linearisation error, same noise realisation.
         res['rms_nl'] = np.sqrt(np.mean(out['nonlinear'] ** 2, axis=-1))
         res['rms_lin'] = np.sqrt(np.mean(out['linear'] ** 2, axis=-1))
@@ -168,31 +175,60 @@ def run_condition(model, contrast, gamma, settings, noise_cfg, record_indices, v
               f"bias below ~{1 / settings['welch_nperseg_sec']:.1f} Hz.", flush=True)
 
     freqs = welch_frequency_grid(fs_rec, nperseg, settings['min_freq'], settings['max_freq'])
-    band = None  # filled after the first welch call
+    all_freqs = np.fft.rfftfreq(nperseg, d=1.0 / fs_rec)
+    band = (all_freqs >= settings['min_freq']) & (all_freqs <= settings['max_freq'])
+    pairs = [tuple(p) for p in settings['coherence_pairs']]
+
+    # `low_pass_add` may be forced on for the validation independently of the
+    # noise_params value the other analyses read.
+    low_pass_add = bool(settings.get('low_pass_add', noise_cfg['low_pass_add']))
 
     # --- analytical reference ---------------------------------------------- #
     t0 = time.time()
-    ana = analytical_psd(J_aug, L, S, freqs, record_indices,
-                         noise_sigma=noise_cfg['noise_sigma'],
-                         noise_tau=noise_cfg['noise_tau'],
-                         low_pass_add=noise_cfg['low_pass_add'],
-                         rho=noise_cfg['rho'], verbose=verbose)
+    ana_all = analytical_spectra(J_aug, L, S, freqs, record_indices, pairs=pairs,
+                                 noise_sigma=noise_cfg['noise_sigma'],
+                                 noise_tau=noise_cfg['noise_tau'],
+                                 low_pass_add=low_pass_add,
+                                 rho=noise_cfg['rho'], verbose=verbose)
+    ana = ana_all['psd']
+
+    # The additive measurement term is deterministic and known in closed form, so
+    # the simulated spectra get it from the same helper rather than paying
+    # estimator noise to simulate it. `low_pass_matrix` is two-sided; welch output
+    # is already one-sided, hence the factor of 2.
+    lp_term = None
+    if low_pass_add:
+        lp_term = 2.0 * low_pass_matrix(freqs, noise_cfg['noise_sigma'],
+                                        noise_cfg['noise_tau'], noise_cfg['rho'],
+                                        len(labels))
     if verbose:
         print(f"  analytical PSD at {len(freqs)} frequencies in {time.time() - t0:.1f}s", flush=True)
 
     result = {'freq': freqs, 'labels': labels, 'analytical': ana,
+              'analytical_coherence': ana_all['coherence'],
+              'coherence_pairs': pairs, 'low_pass_add': low_pass_add,
               'fs_rec': fs_rec, 'dt': dt, 'nperseg': nperseg,
               'slowest_tau': slowest}
 
-    rng = np.random.default_rng(settings['seed'] + 10007)
+    def _summarise(blocks):
+        """Pooled PSD (mean + SEM over trials) and coherence from per-trial CSDs.
 
-    def _add_observation_noise(traces):
-        """Add the `low_pass_add` measurement noise to simulated traces."""
-        if not noise_cfg['low_pass_add']:
-            return traces
-        return traces + observation_noise(traces.shape, 1.0 / fs_rec,
-                                          noise_cfg['noise_sigma'], noise_cfg['noise_tau'],
-                                          noise_cfg['rho'], rng)
+        `lp_term` is deterministic, so adding it to the pooled quantities is
+        equivalent to adding it per trial, and it leaves the SEM untouched. It
+        must go in *before* coherence is formed -- its shared component is
+        precisely what creates the cross-channel power.
+        """
+        blocks = np.asarray(blocks)                      # (n_trials, n_freq, k, k)
+        psd_mean, psd_sem = average_psd(np.real(np.einsum('tfkk->tkf', blocks)))
+        pooled = pool_cross_spectra(blocks)
+        if lp_term is not None:
+            psd_mean = psd_mean + np.real(np.einsum('fkk->kf', lp_term))
+            pooled = pooled + lp_term
+        psd = {lab: {'mean': psd_mean[i], 'sem': psd_sem[i]}
+               for i, lab in enumerate(labels)}
+        coh = {(a, b): coherence_from_block(pooled, labels.index(a), labels.index(b))
+               for a, b in pairs}
+        return psd, coh, pooled
 
     # --- standalone linear SDE (batched, unbiased) ------------------------- #
     if settings['mode'] in ('linear', 'both'):
@@ -213,27 +249,26 @@ def run_condition(model, contrast, gamma, settings, noise_cfg, record_indices, v
                   flush=True)
 
         rng_lin = np.random.default_rng(settings['seed'])
-        psd_chunks = []
-        w_freqs = None
+        csd_chunks = []
         for start in range(0, settings['n_trials'], int(settings['linear_batch'])):
             n_this = min(int(settings['linear_batch']), settings['n_trials'] - start)
             traces = simulate_linear_batch(
                 J_aug, B, dt_lin, n_steps_lin, n_burn_lin, n_this, idx,
                 1, rng_lin, integrator=settings['integrator'])
-            traces = _add_observation_noise(traces)
-            w_freqs, psd = welch_psd(traces, fs_lin, nperseg_lin, settings['welch_overlap'])
+            w_freqs, blk = cross_spectral_matrix(traces, fs_lin, nperseg_lin,
+                                                 settings['welch_overlap'])
             band_lin = (w_freqs >= settings['min_freq']) & (w_freqs <= settings['max_freq'])
             if not np.allclose(w_freqs[band_lin], freqs):
                 raise ValueError("linear-run frequency grid does not match the analytical "
                                  "grid; welch_nperseg_sec * fs must be an integer for both")
-            psd_chunks.append(psd[..., band_lin])
+            csd_chunks.append(blk[:, band_lin])
             if start == 0 and settings['save_traces']:
                 result['trace_linear_batch'] = traces[0, :, :int(min(traces.shape[-1],
                                                                     0.5 * fs_lin))]
             del traces
-        mean, sem = average_psd(np.concatenate(psd_chunks, axis=0))
-        result['sde_linear'] = {lab: {'mean': mean[i], 'sem': sem[i]}
-                                for i, lab in enumerate(labels)}
+        psd, coh, _ = _summarise(np.concatenate(csd_chunks, axis=0))
+        result['sde_linear'] = psd
+        result['sde_linear_coherence'] = coh
         result['sde_linear_meta'] = {'integrator': settings['integrator'],
                                      'n_trials': settings['n_trials'], 'dt': dt_lin}
         if verbose:
@@ -248,7 +283,7 @@ def run_condition(model, contrast, gamma, settings, noise_cfg, record_indices, v
                'record_idx': idx, 'record_every': record_every, 'seed': settings['seed'],
                'paired': settings['paired'], 'clip_nonneg': settings['clip_nonneg'],
                'fs_rec': fs_rec, 'nperseg': nperseg, 'overlap': settings['welch_overlap'],
-               'save_traces': settings['save_traces']}
+               'band': band, 'save_traces': settings['save_traces']}
 
         n_jobs = max(1, min(int(settings['n_jobs']), settings['n_trials']))
         trials = list(range(settings['n_trials']))
@@ -271,14 +306,11 @@ def run_condition(model, contrast, gamma, settings, noise_cfg, record_indices, v
                     else:
                         os.environ[k] = v
 
-        if band is None:
-            w_freqs = np.fft.rfftfreq(nperseg, d=1.0 / fs_rec)
-            band = (w_freqs >= settings['min_freq']) & (w_freqs <= settings['max_freq'])
-
-        psd_nl = np.stack([o['psd_nonlinear'][..., band] for o in out])
-        mean, sem = average_psd(psd_nl)
-        result['sde_nonlinear'] = {lab: {'mean': mean[i], 'sem': sem[i]}
-                                   for i, lab in enumerate(labels)}
+        psd, coh, pooled = _summarise([o['csd_nonlinear'] for o in out])
+        result['sde_nonlinear'] = psd
+        result['sde_nonlinear_coherence'] = coh
+        if settings['save_csd']:
+            result['sde_nonlinear_csd'] = pooled
         n_clipped = int(sum(o['n_clipped'] for o in out))
         result['n_clipped'] = n_clipped
         # y1Plus, y4Plus, s1Plus, s4Plus are the four clippable blocks (N entries each)
@@ -287,10 +319,9 @@ def run_condition(model, contrast, gamma, settings, noise_cfg, record_indices, v
         result['clip_fraction'] = n_clipped / max(1, total_updates)
 
         if settings['paired']:
-            psd_lin = np.stack([o['psd_linear'][..., band] for o in out])
-            mean_l, sem_l = average_psd(psd_lin)
-            result['sde_linear_paired'] = {lab: {'mean': mean_l[i], 'sem': sem_l[i]}
-                                           for i, lab in enumerate(labels)}
+            psd_l, coh_l, _ = _summarise([o['csd_linear'] for o in out])
+            result['sde_linear_paired'] = psd_l
+            result['sde_linear_paired_coherence'] = coh_l
             rms_nl = np.mean([o['rms_nl'] for o in out], axis=0)
             rms_lin = np.mean([o['rms_lin'] for o in out], axis=0)
             rms_diff = np.mean([o['rms_diff'] for o in out], axis=0)
@@ -455,6 +486,10 @@ if __name__ == "__main__":
     p.add_argument('--record-fs', dest='record_fs', type=float, default=None)
     p.add_argument('--dt-linear', dest='dt_linear', type=float, default=None)
     p.add_argument('--nperseg-sec', dest='welch_nperseg_sec', type=float, default=None)
+    p.add_argument('--low-pass-add', dest='low_pass_add', action='store_true', default=None,
+                   help='force the additive low-pass measurement term on')
+    p.add_argument('--no-low-pass-add', dest='low_pass_add', action='store_false',
+                   default=None, help='force the additive low-pass measurement term off')
     p.add_argument('--no-paired', dest='paired', action='store_false', default=None,
                    help='skip the noise-matched linear run inside the nonlinear trials')
     p.add_argument('--c-vals', dest='c_vals', type=float, nargs='+', default=None)
