@@ -12,9 +12,9 @@ __pycache__/
 # Jupyter
 .ipynb_checkpoints/
 
-# Results (generated data)
-Results/
-Results_*/
+# Results (generated data) — dirs or symlinks to /scratch
+Results
+Results_*
 
 # Job outputs
 Job_Scripts/Outputs/
