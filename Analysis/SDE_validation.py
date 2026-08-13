@@ -52,6 +52,7 @@ DEFAULTS = {
     'clip_nonneg': True,
     'save_traces': True,       # keep a short trace snippet for the time-domain panel
     'save_csd': True,          # keep the pooled cross-spectral block for re-plotting
+    'save_psd_trials': True,   # keep the per-trial PSDs (paired bootstrap of the contrast index)
 }
 
 # Filled in by the pool initializer so the big arrays are not re-pickled per task.
@@ -219,16 +220,19 @@ def run_condition(model, contrast, gamma, settings, noise_cfg, record_indices, v
         precisely what creates the cross-channel power.
         """
         blocks = np.asarray(blocks)                      # (n_trials, n_freq, k, k)
-        psd_mean, psd_sem = average_psd(np.real(np.einsum('tfkk->tkf', blocks)))
+        psd_trials = np.real(np.einsum('tfkk->tkf', blocks))     # (n_trials, k, n_freq)
+        psd_mean, psd_sem = average_psd(psd_trials)
         pooled = pool_cross_spectra(blocks)
         if lp_term is not None:
-            psd_mean = psd_mean + np.real(np.einsum('fkk->kf', lp_term))
+            lp_diag = np.real(np.einsum('fkk->kf', lp_term))
+            psd_mean = psd_mean + lp_diag
+            psd_trials = psd_trials + lp_diag[None]
             pooled = pooled + lp_term
         psd = {lab: {'mean': psd_mean[i], 'sem': psd_sem[i]}
                for i, lab in enumerate(labels)}
         coh = {(a, b): coherence_from_block(pooled, labels.index(a), labels.index(b))
                for a, b in pairs}
-        return psd, coh, pooled
+        return psd, coh, pooled, psd_trials
 
     # --- standalone linear SDE (batched, unbiased) ------------------------- #
     if settings['mode'] in ('linear', 'both'):
@@ -266,7 +270,7 @@ def run_condition(model, contrast, gamma, settings, noise_cfg, record_indices, v
                 result['trace_linear_batch'] = traces[0, :, :int(min(traces.shape[-1],
                                                                     0.5 * fs_lin))]
             del traces
-        psd, coh, _ = _summarise(np.concatenate(csd_chunks, axis=0))
+        psd, coh, _, _ = _summarise(np.concatenate(csd_chunks, axis=0))
         result['sde_linear'] = psd
         result['sde_linear_coherence'] = coh
         result['sde_linear_meta'] = {'integrator': settings['integrator'],
@@ -306,11 +310,16 @@ def run_condition(model, contrast, gamma, settings, noise_cfg, record_indices, v
                     else:
                         os.environ[k] = v
 
-        psd, coh, pooled = _summarise([o['csd_nonlinear'] for o in out])
+        psd, coh, pooled, psd_trials = _summarise([o['csd_nonlinear'] for o in out])
         result['sde_nonlinear'] = psd
         result['sde_nonlinear_coherence'] = coh
         if settings['save_csd']:
             result['sde_nonlinear_csd'] = pooled
+        # The contrast index divides two Welch estimates that share per-trial seeds, so a
+        # *paired* bootstrap (one resampling applied to both conditions) is the honest error
+        # bar. It needs the per-trial PSDs, which cannot be recovered from the mean later.
+        if settings.get('save_psd_trials', True):
+            result['sde_nonlinear_psd_trials'] = psd_trials
         n_clipped = int(sum(o['n_clipped'] for o in out))
         result['n_clipped'] = n_clipped
         # y1Plus, y4Plus, s1Plus, s4Plus are the four clippable blocks (N entries each)
@@ -319,7 +328,7 @@ def run_condition(model, contrast, gamma, settings, noise_cfg, record_indices, v
         result['clip_fraction'] = n_clipped / max(1, total_updates)
 
         if settings['paired']:
-            psd_l, coh_l, _ = _summarise([o['csd_linear'] for o in out])
+            psd_l, coh_l, _, _ = _summarise([o['csd_linear'] for o in out])
             result['sde_linear_paired'] = psd_l
             result['sde_linear_paired_coherence'] = coh_l
             rms_nl = np.mean([o['rms_nl'] for o in out], axis=0)
@@ -387,7 +396,7 @@ def compute_metrics(result, labels, sub_band=None):
     return metrics
 
 
-def main(config_file, cli):
+def main(config_file, cli, c_index=None, out_name=None):
     print(f"SDE validation of the analytical power spectra")
     print(f"Attempting to load config from: {config_file}")
     try:
@@ -402,6 +411,16 @@ def main(config_file, cli):
         sys.exit(1)
 
     settings = resolve_settings(config, cli)
+
+    # A SLURM array runs one contrast per task. Selecting by *position* in the config
+    # list rather than by value keeps the float literals in exactly one place -- the
+    # merge step then checks the shards it finds against `c_vals_full`.
+    all_c = list(settings['c_vals'])
+    if c_index is not None:
+        if not 0 <= c_index < len(all_c):
+            raise SystemExit(f"--c-index {c_index} out of range for c_vals={all_c}")
+        settings['c_vals'] = [all_c[c_index]]
+
     results_dir = os.path.dirname(os.path.abspath(config_file))
     data_dir = os.path.join(results_dir, 'Data')
     os.makedirs(data_dir, exist_ok=True)
@@ -432,8 +451,14 @@ def main(config_file, cli):
     payload = {'results': results,
                'settings': settings,
                'record_indices': record_indices,
-               'noise_params': noise_cfg}
-    filepath = os.path.join(data_dir, 'sde_validation.npy')
+               'noise_params': noise_cfg,
+               # Provenance for merge_sde_validation.py: which slice this is, and the
+               # full list it was sliced out of.
+               'c_index': c_index,
+               'c_vals_full': all_c}
+    name = out_name or ('sde_validation' if c_index is None
+                        else f'sde_validation_c{c_index:02d}')
+    filepath = os.path.join(data_dir, name + '.npy')
     np.save(filepath, payload)
     print(f"\nSaved SDE validation data to: {filepath}")
 
@@ -494,7 +519,15 @@ if __name__ == "__main__":
                    help='skip the noise-matched linear run inside the nonlinear trials')
     p.add_argument('--c-vals', dest='c_vals', type=float, nargs='+', default=None)
     p.add_argument('--gamma-vals', dest='gamma_vals', type=float, nargs='+', default=None)
+    p.add_argument('--c-index', dest='c_index', type=int, default=None,
+                   help='run only c_vals[i] of the resolved list; for SLURM arrays')
+    p.add_argument('--out-name', dest='out_name', default=None,
+                   help='basename of the .npy written to <results_dir>/Data (no extension)')
     args = p.parse_args()
 
-    cli = {k: v for k, v in vars(args).items() if k != 'config_file'}
-    main(args.config_file, cli)
+    # `--c-index` and `--out-name` steer *where* the work goes, not what it is, so they
+    # must stay out of `settings` -- resolve_settings merges every non-None CLI entry,
+    # and the merge script compares shard settings for equality.
+    cli = {k: v for k, v in vars(args).items()
+           if k not in ('config_file', 'c_index', 'out_name')}
+    main(args.config_file, cli, c_index=args.c_index, out_name=args.out_name)

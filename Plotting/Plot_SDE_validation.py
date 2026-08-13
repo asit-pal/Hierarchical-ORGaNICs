@@ -25,6 +25,8 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import numpy as np
 
+from Utils.SDE_contrast_index import contrast_index
+
 # Diagnostic figures: the shared journal rcParams are tuned for single-panel
 # figures (90 pt labels) and are unreadable here.
 DIAG_RC = {
@@ -86,10 +88,8 @@ def _normalised_psd(result, bg, lab, series_key):
     p_ana = result['analytical'][lab]
     p_sde = result[series_key][lab]['mean']
     if bg is not None:
-        b_ana = bg['analytical'][lab]
-        b_sde = bg[series_key][lab]['mean']
-        return ((p_ana - b_ana) / (p_ana + b_ana),
-                (p_sde - b_sde) / (p_sde + b_sde))
+        return (contrast_index(p_ana, bg['analytical'][lab]),
+                contrast_index(p_sde, bg[series_key][lab]['mean']))
     scale = p_ana.max()
     return p_ana / scale, p_sde / scale
 
@@ -272,19 +272,33 @@ def main(results_dir, show_linear=False):
         if 'error' in v:
             print(f"Skipping c={key[1]}, gamma={key[0]}: condition failed ({v['error']})")
 
-    # The published power panel is a contrast index against the lowest contrast,
-    # so that condition is the background and is not plotted in its own right.
-    contrasts = sorted({c for _, c in results})
-    background_c = contrasts[0] if len(contrasts) > 1 else None
+    # The published power panel is a contrast index against the lowest contrast, so that
+    # condition is the background and is not plotted in its own right. The background is
+    # taken from the *configured* sweep, not from whatever happens to be present: if a
+    # condition were missing, `sorted(contrasts)[0]` would silently promote the next
+    # contrast up and rescale every curve in the figure with no error at all.
+    configured = sorted(float(c) for c in settings['c_vals'])
+    contrasts = sorted({float(c) for _, c in results})
+    background_c = configured[0] if len(configured) > 1 else None
     if background_c is None:
         print("Only one contrast in the payload: plotting power as "
               "P / max(analytical) instead of the (P-P_bg)/(P+P_bg) contrast index, "
               "which needs a lower-contrast background condition.")
+    elif background_c not in contrasts:
+        print(f"Error: the configured background contrast c={background_c} is not in the "
+              f"payload (found {contrasts}). Every normalised curve divides by it, so "
+              f"plotting without it would silently change what the figure means. "
+              f"Re-run that condition, or merge the missing shard.")
+        sys.exit(1)
 
     for (gamma, contrast), result in results.items():
         if contrast == background_c:
             continue
         bg = results.get((gamma, background_c)) if background_c is not None else None
+        if background_c is not None and bg is None:
+            print(f"WARNING: gamma={gamma} has no c={background_c} condition; this panel "
+                  f"falls back to P/max(analytical) and its y-axis is NOT the published "
+                  f"contrast index.")
         result['n_trials_note'] = note
         tag = f"c{contrast}_g{gamma}".replace('.', 'p')
         plot_psd(result, gamma, contrast,

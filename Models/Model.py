@@ -98,9 +98,15 @@ class RingModel:
         gamma_0 = self.params[f'gamma{n}']
         b = self.params[f'b{n}']
         g = self.params[f'g{n}']
+        # Constant tonic/spontaneous drive on the membrane potential. Default 0 leaves every
+        # existing analysis untouched; a small positive value lifts the y1/y4 fixed point off the
+        # `rectify` kink so relu is locally linear and the SDE tracks its own linearisation at low
+        # contrast. Routed through dynm_func, so it shifts the fixed point, the autograd Jacobian
+        # (hence the analytical spectrum), and the simulation consistently.
+        baseline = self.params.get('baseline', 0.0)
 
         # Compute dynamics
-        dy = (1 / tau_y) * (-y + (beta*b) * z + (1 / (1 + pPlus)) * (np.matmul(Wnn, np.sqrt(yPlus)) + (gamma*g) * np.matmul(Wnn_next, np.sqrt(yPlus_next))))
+        dy = (1 / tau_y) * (-y + baseline + (beta*b) * z + (1 / (1 + pPlus)) * (np.matmul(Wnn, np.sqrt(yPlus)) + (gamma*g) * np.matmul(Wnn_next, np.sqrt(yPlus_next))))
         
         du = (1 / tau_u) * (-u + (sigma*b)**2 + np.matmul(Wn, yPlus * uPlus**2))
         

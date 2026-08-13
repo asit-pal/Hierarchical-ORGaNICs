@@ -1,9 +1,9 @@
 # Model parameters
 model_params:
   num_trials: 250
-  tau: 0.01       # baseline membrane time constant (s) for p/u/s/beta/gamma variables
-  tauPlus: 0.01   # time constant (s) for the *Plus (filtered) variables
-  tauY: 0.01       # membrane time constant (s) for the y1/y4 membrane potentials only
+  tau: 0.001       # baseline membrane time constant (s) for p/u/s/beta/gamma variables
+  tauPlus: 0.001   # time constant (s) for the *Plus (filtered) variables
+  tauY: 0.001       # membrane time constant (s) for the y1/y4 membrane potentials only
   beta1: 1.0
   beta4: 1.0
   gamma1: 1.0
@@ -27,7 +27,7 @@ noise_params:
   delta_tau: 3.0
   noise_sigma: 0.030
   noise_tau: 0.050
-  low_pass_add: False
+  low_pass_add: True
   rho: 0.10
 
 Gain_modulation:
@@ -77,14 +77,22 @@ Power_spectra:
 SDE_validation:
   enabled: True
   gamma_vals: [1.0]
-  c_vals: [0.5]
+  # The published Power_spectra sweep (line 64). c=0.0 is the background of the contrast
+  # index (P-P_bg)/(P+P_bg) the paper plots, so it is required, not optional.
+  # Job_Scripts/submit_sde_validation.sh runs one array task per entry, selected by
+  # index -- never pass --c-vals, or the shards stop matching this list.
+  c_vals: [0.0, 0.025, 0.037, 0.061, 0.097, 0.163, 0.359, 0.503, 0.72]
   t_span: [0, 5]            # window for the deterministic fixed-point solve
-  mode: both                # linear | nonlinear | both
+  mode: nonlinear           # linear | nonlinear | both -- the full SDE is the comparison
   integrator: exact         # standalone linear run: exact (Van Loan) or euler
-  dt: 2.0e-5                # nonlinear (Euler) step (s); must be << the fastest time constant
+  # dt was 2.0e-5 when tau=0.01 put the fastest mode at 1.00 ms (dt/tau_fast = 0.020).
+  # At tau=0.001 the fastest mode is 0.48 ms, so 2.0e-5 would give 0.042 -- still under
+  # the 0.05 warning threshold below, and so silent, but twice the Euler bias the
+  # validated run carried. That bias does not cancel against the analytical curve.
+  dt: 1.0e-5                # nonlinear (Euler) step (s); must be << the fastest time constant
   dt_linear: 1.0e-4         # exact linear run step (unbiased at any dt); null -> 1/record_fs
   T: 16.0                   # simulated seconds per trial, after burn-in
-  burn_in: 3.0              # discarded transient (s); must exceed the slowest mode
+  burn_in: 1.0              # discarded transient (s); 18x the 56 ms slowest mode at tau=0.001
   n_trials: 100
   linear_batch: 8           # trials advanced together in the linear run (caps memory)
   record_fs: 20000.0        # target sampling rate of the stored traces (Hz)
@@ -100,10 +108,15 @@ SDE_validation:
   low_pass_add: True
   seed: 0
   n_jobs: 16
+  # Only the c=0 array task keeps this; sde_validation_array.sbatch passes --no-paired
+  # for every other contrast. At c=0 the rectified variables sit on their floor, so the
+  # unclipped linear shadow on the same Wiener path is the only measurement of how much
+  # clipping distorts the background that all the other curves divide by.
   paired: True              # drive the linear system with the nonlinear run's noise
   clip_nonneg: True
   save_traces: True
   save_csd: True            # keep the pooled cross-spectral block for re-plotting
+  save_psd_trials: True     # per-trial PSDs; needed for the paired bootstrap of the index
 
 Coherence:
   Feedback_gain:

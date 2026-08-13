@@ -1,0 +1,11 @@
+{
+  "exclude": [
+    "**/Results_3",
+    "**/Results_4",
+    "**/Results_5",
+    "**/Job_Scripts/Outputs",
+    "**/.git",
+    "**/__pycache__",
+    "**/.ipynb_checkpoints"
+  ]
+}

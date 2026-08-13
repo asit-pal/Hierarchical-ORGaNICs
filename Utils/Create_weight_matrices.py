@@ -138,7 +138,11 @@ def setup_parameters(config, tau=None, kernel=None, N=36, M=None, tauPlus=None, 
         'b4': config['model_params']['b4'],
         'g1': config['model_params']['g1'],
         'g4': config['model_params']['g4'],
-        'Delta_x': config['model_params'].get('Delta_x', 0)
+        'Delta_x': config['model_params'].get('Delta_x', 0),
+        # Constant tonic drive on the membrane potentials (default 0 -> unchanged behaviour).
+        # Used by the operating-point sweep to lift the low-contrast fixed point off the
+        # rectify floor; see single_area_computation in Models/Model.py.
+        'baseline': config['model_params'].get('baseline', 0.0),
     }
 
     for k in kwargs:
